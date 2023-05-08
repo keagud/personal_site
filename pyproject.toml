@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "personal_site"
+version = "0.1.0"
+description = "my website"
+authors = ["keagud <keagud@protonmail.com>"]
+license = "0BSD"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+Django = "^4.2.1"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.0.265"
+pyright = "^1.1.306"
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
