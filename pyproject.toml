@@ -9,11 +9,13 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 Django = "^4.2.1"
+django-debug-toolbar = "^4.1.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.265"
 pyright = "^1.1.306"
 black = "^23.3.0"
+libsass = "^0.22.0"
 
 [build-system]
 requires = ["poetry-core"]
