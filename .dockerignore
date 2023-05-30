@@ -1,3 +1,4 @@
+.venv/
 *.pyc
 *.pyo
 *.mo
@@ -11,7 +12,6 @@
 .pydevproject
 .idea/workspace.xml
 .DS_Store
-.git/
 .sass-cache
 .vagrant/
 __pycache__

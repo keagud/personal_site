@@ -1,6 +1,6 @@
 MANAGE := poetry run python manage.py
 
-serve: debug-on deps
+serve: debug-on deps collect
 	$(MANAGE) runserver
 
 shell:
@@ -24,3 +24,10 @@ debug-on:
 
 debug-off:
 	export DJANGO_DEBUG='FALSE'
+
+clean:
+	rm -rf static_files || echo "No files to clean"
+
+collect: clean
+	$(MANAGE) collectstatic
+	
