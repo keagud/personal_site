@@ -10,6 +10,7 @@ readme = "README.md"
 python = "^3.10"
 Django = "^4.2.1"
 django-debug-toolbar = "^4.1.0"
+python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.265"

@@ -13,3 +13,7 @@ format:
 
 test:
 	$(MANAGE) test 
+
+
+deps:
+	poetry export -f requirements.txt --output requirements.txt
