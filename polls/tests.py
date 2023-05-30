@@ -1,16 +1,16 @@
-from datetime import timedelta
 import datetime
+from datetime import timedelta
 from pprint import pprint
 from typing import Any
-from django.test import Client, TestCase
-from django.test import RequestFactory
-from django.utils import timezone
-from django import urls
-from django.urls import reverse
-from django.http import HttpResponse
-from .models import Question
 
+from django import urls
+from django.http import HttpResponse
 from django.template.response import TemplateResponse
+from django.test import Client, RequestFactory, TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from .models import Question
 
 
 class QuestionModelTests(TestCase):

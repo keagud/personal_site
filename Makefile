@@ -1,6 +1,6 @@
 MANAGE := poetry run python manage.py
 
-serve:
+serve: debug-on deps
 	$(MANAGE) runserver
 
 shell:
@@ -17,3 +17,10 @@ test:
 
 deps:
 	poetry export -f requirements.txt --output requirements.txt
+
+
+debug-on:
+	export DJANGO_DEBUG='TRUE'
+
+debug-off:
+	export DJANGO_DEBUG='FALSE'

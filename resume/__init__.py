@@ -1,2 +1,1 @@
-
-default_app_config = 'resume.apps.ResumeConfig'
+default_app_config = "resume.apps.ResumeConfig"

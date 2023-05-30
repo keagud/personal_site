@@ -1,6 +1,7 @@
-from django.shortcuts import render
-from django.http import FileResponse, Http404, HttpResponse
 from pathlib import Path
+
+from django.http import FileResponse, Http404, HttpResponse
+from django.shortcuts import render
 
 
 def pdf_view(request):

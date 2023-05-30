@@ -1,6 +1,5 @@
-from django.shortcuts import render
 from django.http import HttpResponse
-
+from django.shortcuts import render
 from django.views import generic
 
 # Create your views here.
@@ -8,6 +7,3 @@ from django.views import generic
 
 class HomePageView(generic.TemplateView):
     template_name = "core/index.html"
-
-
-

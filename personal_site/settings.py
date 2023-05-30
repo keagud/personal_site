@@ -10,10 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from pathlib import Path
 from os import environ
-from dotenv import load_dotenv
+from pathlib import Path
 
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +25,7 @@ load_dotenv()
 SECRET_KEY = environ["DJANGO_SECRET"]
 DEBUG = environ.get("DJANGO_DEBUG", "FALSE") == "TRUE"
 
-ALLOWED_HOSTS = [".localhost"]
+ALLOWED_HOSTS = [".localhost", '127.0.0.1']
 
 
 # Application definition
@@ -44,8 +44,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -122,7 +123,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
-STATIC_ROOT = Path(BASE_DIR).joinpath('static_files')
+STATIC_ROOT = Path(BASE_DIR).joinpath("static_files")
 
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
