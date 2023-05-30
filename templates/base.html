@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang = "en">
+  <head>
+    <meta charset="utf-8">
+    <title>Welcome to my Web Site!</title>
+    <link rel="stylesheet" href="{% static 'css/tufte.css' %}">
+    <link rel="stylesheet" href="{% static 'css/index-page-base.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+  <h1><a href = "https://implicit.computer">implicit.computer</a></h1>
+  <p><i id="quote"></i></p>
+  <br>
+  {% block content %}
+  {% endblock %}
+  <script>
+    const quotesJson = (()=>{
+          let reader = new XMLHttpRequest();
+      reader.open("GET", "{% static 'quotes.json' %}",  false);
+          reader.send();
+          return JSON.parse(reader.responseText);
+        })();
+
+          console.log(quotesJson);
+
+      const quoteElement = document.querySelector("#quote");
+
+      quoteElement.textContent = (() => {
+      const quotesArr = quotesJson["quotes"];
+      console.table(quotesArr);
+      let index = Math.floor(Math.random() * (quotesArr.length));
+      console.log(quotesArr[index]);
+      return quotesArr[index];
+    })();
+    
+</script>
+</body>
+</html>
+
