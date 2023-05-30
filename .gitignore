@@ -1,4 +1,3 @@
-static_files/
 # Django #
 *.log
 *.pot
@@ -6,7 +5,8 @@ static_files/
 __pycache__
 db.sqlite3
 media
-
+*static_files/*
+static_files/
 # Backup files # 
 *.bak 
 
