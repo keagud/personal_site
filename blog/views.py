@@ -1,3 +1,11 @@
 from django.shortcuts import render
 
-# Create your views here.
+from django.views import generic
+
+
+class PostsIndexView(generic.ArchiveIndexView):
+    template_name = "blog/index.html"
+
+
+class PostDetailView(generic.DetailView):
+    template_name = "blog/post.html"

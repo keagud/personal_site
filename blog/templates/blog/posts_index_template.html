@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Post Index{%endblock%}
+{% block date %}1970-1-1{%endblock%}
+
+{%block content%}
+<ul>
+{% for item in posts_index %}
+<li><a href = "{{item.filename}}">{{item.title}}</a></li>
+{% endfor %}
+</ul>
+
+{%endblock content%}
+

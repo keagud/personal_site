@@ -1,0 +1,79 @@
+<!--
+  {% block title required %}{% endblock %}
+  {% block date required %} {% endblock %}
+-->
+
+{# MACROS #}
+{% set note_index = 1 %}
+{% macro sidenote(content, number = false) -%}
+{% if number %}
+  <label for = "sn-{{note_index}}"
+    class = "margin-toggle sidenote-number"
+  </label>
+  <input type="checkbox"
+       id="sn-{{number}}"
+       class="margin-toggle"/>
+  <span class="sidenote">
+    {{content}}
+  </span>
+  {% set note_index = note_index + 1 %}
+{% else %}
+    {# should be a hash of the content maybe? zero value is a placeholder #}
+  <label for="mn-0" class="margin-toggle">&#8853;</label>
+  <input type="checkbox" id="mn-0" class="margin-toggle"/>
+  <span class="marginnote">
+    {{content}}
+  </span>
+{% endif %}
+{%- endmacro %}
+
+{% macro blockquote(content, attribution = "", epigraph=false) -%}
+{% if epigraph %}<div class="epigraph">{% endif %}
+<blockquote>
+<p>{{content}}</p>
+{% if attribution != "" %} <footer>{{attribution}}</footer> {% endif %}
+</blockquote>
+{% if epigraph %}<div class="epigraph">{%endif%}
+{%- endmacro %}
+
+{# BASE TEMPLATE #}
+<!DOCTYPE html>
+<html lang = "en">
+  <head>
+    <meta charset="utf-8">
+    <title>Welcome to my Web Site!</title>
+    <link rel="stylesheet" href="{{rootpath}}/css/tufte.css">
+    <link rel="stylesheet" href="{{rootpath}}/css/index-page-base.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+  <h1><a href = "https://keagud.github.io">Keagud dot github dot io</a></h1>
+  <p><i id="quote"></i></p>
+  <br>
+  {% block content %}
+  {% endblock %}
+  <script>
+    const quotesJson = (()=>{
+          let reader = new XMLHttpRequest();
+      reader.open("GET", "{{rootpath}}/quotes.json",  false);
+          reader.send();
+          return JSON.parse(reader.responseText);
+        })();
+
+          console.log(quotesJson);
+
+      const quoteElement = document.querySelector("#quote");
+
+      quoteElement.textContent = (() => {
+      const quotesArr = quotesJson["quotes"];
+      console.table(quotesArr);
+      let index = Math.floor(Math.random() * (quotesArr.length));
+      console.log(quotesArr[index]);
+      return quotesArr[index];
+    })();
+    
+</script>
+</body>
+</html>
+

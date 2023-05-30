@@ -13,31 +13,6 @@ from .models import Question
 from django.template.response import TemplateResponse
 
 
-def _create_question(question_text: str, days: int) -> Question:
-    time = timezone.now() - timedelta(days=days)
-    return Question.objects.create(question_text=question_text, pub_date=time)  # type: ignore
-
-
-def _get_response(client: Client, target: str) -> TemplateResponse | None:
-    response = client.get(urls.reverse(target))
-
-    if not isinstance(response, TemplateResponse):
-        return None
-
-    pprint(response.content)
-    return response
-
-
-def _get_context_data(response: TemplateResponse | None, key: str) -> Any:
-    if response is None:
-        return None
-
-    context = response.context_data  # type: ignore
-    if context is None:
-        return None
-    return context[key]
-
-
 class QuestionModelTests(TestCase):
     def test_was_published_recently_with_future_question(self):
         time = timezone.now() + timedelta(days=30)
@@ -60,7 +35,7 @@ class QuestionModelTests(TestCase):
         self.assertIs(recent_question.was_published_recently(), True)
 
 
-def create_question(question_text, days):
+def create_question(question_text, days) -> Question:
     """
     Create a question with the given `question_text` and published the
     given number of `days` offset to now (negative for questions published
