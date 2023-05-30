@@ -21,6 +21,7 @@ urlpatterns = [
     path("blog/", include("blog.urls")),
     path("polls/", include("polls.urls")),
     path("admin/", admin.site.urls),
+    path("resume/", include("resume.urls")),
     path("", include("core.urls")),
     path("__debug__/", include("debug_toolbar.urls")),
 ]

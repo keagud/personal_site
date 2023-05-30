@@ -11,8 +11,6 @@ class ResumeConfig(AppConfig):
     def ready(self):
         resume_build_path = Path(__file__).parent.joinpath("resume")
         build_script_path = resume_build_path.joinpath("build.py").as_posix()
-        resume_pdf_path = resume_build_path.joinpath("resume.pdf").as_posix()
         build_step = subprocess.run(["python3", build_script_path])
         build_step.check_returncode()
 
-        copy(resume_pdf_path, Path(__file__).parent)
