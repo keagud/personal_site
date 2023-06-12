@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = get_random_secret_key()
 DEBUG = environ.get("DJANGO_DEBUG", "FALSE") == "TRUE"
 
-ALLOWED_HOSTS = [".localhost", '127.0.0.1', ".fly.dev"]
+ALLOWED_HOSTS = [".localhost", '127.0.0.1', ".fly.dev", "implicit.computer", ".implicit.computer"]
 
 
 # Application definition
