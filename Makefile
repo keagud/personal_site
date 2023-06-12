@@ -31,3 +31,6 @@ clean:
 collect: clean
 	$(MANAGE) collectstatic
 	
+
+build:
+	docker build  -t personal_django_site . --no-cache=true
