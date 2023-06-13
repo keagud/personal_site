@@ -1,30 +1,16 @@
-body {
-  font-family: "Helvetica";
-  margin-left: 20%;
-  margin-right: 20%;
-  background-color: #fffff8;
-  color: #111;
-  max-width: 1400px;
+$font-tech: 'Courier New', Courier, monospace;
+$font-content: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
 
-  font-size: 20px;
-}
+$bgcolor: #fffff8;
+$textcolor: #111;
 
-.section-title {
-  text-decoration: underline;
-  font-family: "Courier";
-}
+$accentcolor1: cornflowerblue;
+$accentcolor2: hotpink;
 
-div#basic-info {
-  font-family: "Courier";
-  margin: auto;
-  width: 50%;
-  text-align: center;
-  border-bottom: none;
-}
 
 a:link,
 a:visited {
-  color: cornflowerblue;
+  color: $accentcolor1;
   text-decoration: none;
 }
 
@@ -33,8 +19,32 @@ a:hover {
 }
 
 a:active {
-  color: hotpink;
+  color: $accentcolor2;
   text-decoration: none;
+}
+
+body {
+  font-family: $font-content;
+  margin-left: 20%;
+  margin-right: 20%;
+  background-color: $bgcolor;
+  color: $textcolor;
+  max-width: 1400px;
+
+  font-size: 20px;
+}
+
+.section-title {
+  text-decoration: underline;
+  font-family: $font-tech;
+}
+
+div#basic-info {
+  font-family: $font-tech;
+  margin: auto;
+  width: 50%;
+  text-align: center;
+  border-bottom: none;
 }
 
 span.course-name {
@@ -46,7 +56,7 @@ span.course-name {
   margin: auto;
   padding-top: 3em;
   text-align: center;
-  font-family: "Courier";
+  font-family: $font-tech;
   border-bottom: solid;
 }
 
@@ -57,20 +67,28 @@ span.course-name {
   margin-bottom: 1.3em;
 }
 
-.past-job-title {
-  font-weight: bold;
-}
-
 .resume-section {
   border-bottom: solid 0.1em;
 }
 
-#projects > ul {
-  list-style: none;
+.past-job-title {
+  font-weight: bold;
+}
+
+
+.programming-language-proficiency{
+  font-weight:bold;
+}
+
+
+#misc-tech-buzzwords, .programming-languages-group {
+  font-size: .9em;
+  font-style: italic;
+  font-family: $font-tech;
 }
 
 .project-title-header {
-  font-family: "Courier";
+  font-family: $font-tech;
 }
 
 .project-header,

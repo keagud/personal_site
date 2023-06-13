@@ -14,6 +14,7 @@ from os import environ
 from pathlib import Path
 
 from django.core.management.utils import get_random_secret_key 
+import mimetypes
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,9 +23,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 SECRET_KEY = get_random_secret_key()
-DEBUG = environ.get("DJANGO_DEBUG", "FALSE") == "TRUE"
+
+DEBUG = False
 
 ALLOWED_HOSTS = [".localhost", '127.0.0.1', ".fly.dev", "implicit.computer", ".implicit.computer"]
+
+
+
+mimetypes.add_type('text/css', '.css', True)
 
 
 # Application definition

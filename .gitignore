@@ -138,4 +138,8 @@ GitHub.sublime-settings
 .history
 
 
+# Sass
+.sass-cache/
 *.css.map
+*.sass.map
+*.scss.ma

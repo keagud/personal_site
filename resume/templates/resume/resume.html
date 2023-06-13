@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 
+{% load static %}
+
 <html lang="en">
   <head>
     
@@ -12,38 +14,42 @@
     <meta name="description" content="" />
 
     <link rel="icon" href="favicon.png" />
-    <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="{% static 'resume/style.css' %}"/>
   </head>
 
   <body>
     
-    {#
-    <!-- BASIC INFO -->
-    #}
-
+    
     <div class="resume-section" id="basic-info">
       <h1 id="full-name">
-        {{ basic_info.firstname }} {{ basic_info.lastname }}
+        Keaton Guderian
       </h1>
 
       <div id="contact">
-        <div id="phone">{{ contact.phone }}</div>
+        <div id="phone">(206)-321-2181</div>
         <div id="email">
-          <a id="email-mailto-link" href="mailto:{{contact.email}}">
-          {{ contact.email }}
+          <a id="email-mailto-link" href="mailto:keagud@protonmail.com">
+          keagud@protonmail.com
           </a>
         </div>
       </div>
 
       <div id="links">
-        {% for link_title, link_content in links.items() %}
-        <div id="link-{{ link_title }}">
-          <a href="{{ link_content }}"
-            >{{ link_title|title|replace("_", " ") }}</a
+        
+        <div id="link-github">
+          <a href="https://github.com/keagud"
+            >Github</a
           >
         </div>
 
-        {% endfor %}
+        
+        <div id="link-website">
+          <a href="https://implicit.computer"
+            >Website</a
+          >
+        </div>
+
+        
       </div>
     </div>
 
@@ -51,59 +57,74 @@
     
     <nav id="section-nav-bar"> </nav>
 
-    {#
-    <!-- EDUCATION -->
-    #}
+    
     <div class="resume-section" id="education">
       <h2 class="section-title">Education</h2>
       <span class="education-institution-summary">
         <span class="education-institution-name">
-          {{ education.overall.school }}
+          University of Washington, Seattle
         </span>
         <span class="education-timespan">
-          {{ education.overall.year_start }}-{{ education.overall.year_end }}
+          2016-2020
         </span>
       </span>
       <ul>
-        <li>Overall GPA: {{ education.overall.gpa }}</li>
+        <li>Overall GPA: 3.88</li>
 
-        {% for item in education.overall.achievements %}
+        
 
-        <li>{{ item }}</li>
+        <li>Graduated Cum Laude</li>
 
-        {% endfor %}
+        
+
+        <li>Made the Dean's List for every term that met the credit requirement (all but 2)</li>
+
+        
       </ul>
       <ul>
-        {% for degree in education.degrees %}
+        
 
         <li class="education-degree-desc">
-          <h3 class="degree-title">{{ degree.name }}</h3>
+          <h3 class="degree-title">Bachelor of Arts, Linguistics</h3>
 
-          {% if degree.relevent_courses %}
+          
 
           <h4>Relevent Coursework</h4>
 
           <ul>
-            {% for course in degree.relevent_courses %}
+            
 
             <li class="course-list-item">
-              <span class="course-name">{{ course.name }}: </span>
-              <span class="course-description">{{ course.description }}</span>
+              <span class="course-name">Syntax I-II: </span>
+              <span class="course-description">Theory and analysis of both natural and formal language systems</span>
             </li>
 
-            {% endfor %}
+            
+
+            <li class="course-list-item">
+              <span class="course-name">Intro to Computational Linguistics: </span>
+              <span class="course-description">Survey of natural language processing methods including deterministic, Baysian, and machine learning paradigms, with accompanying practical experience with Python.</span>
+            </li>
+
+            
           </ul>
 
-          {% endif %}
+          
         </li>
 
-        {% endfor %}
+        
+
+        <li class="education-degree-desc">
+          <h3 class="degree-title">Bachelor of Science, Speech and Hearing Science</h3>
+
+          
+        </li>
+
+        
       </ul>
     </div>
 
-    {#
-    <!-- SKILLS -->
-    #}
+    
 
     <div class="resume-section" id="skills">
       <h2 class="section-title">Skills</h2>
@@ -111,25 +132,89 @@
       <div id="skills-section-programming-languages">
         <h3 class="subsection-title">Programming Languages</h3>
         <ul>
-          {% for skill_level, langs_list in skills.programming_languages.items()
-          %}
+          
 
           <li>
             <em class="programming-language-proficiency">
-              {{ skill_level|title }}:
+              Proficient:
             </em>
-            {% for language in langs_list %}
+            
 
             <span class="programming-languages-group">
               <span class="programming-language-name">
-                {{ language }} {% if not loop.last %},{% endif %}
+                Python ,
               </span>
             </span>
 
-            {% endfor %}
+            
+
+            <span class="programming-languages-group">
+              <span class="programming-language-name">
+                C ,
+              </span>
+            </span>
+
+            
+
+            <span class="programming-languages-group">
+              <span class="programming-language-name">
+                C++ ,
+              </span>
+            </span>
+
+            
+
+            <span class="programming-languages-group">
+              <span class="programming-language-name">
+                Javascript/Typescript ,
+              </span>
+            </span>
+
+            
+
+            <span class="programming-languages-group">
+              <span class="programming-language-name">
+                HTML/CSS 
+              </span>
+            </span>
+
+            
           </li>
 
-          {% endfor %}
+          
+
+          <li>
+            <em class="programming-language-proficiency">
+              Learning:
+            </em>
+            
+
+            <span class="programming-languages-group">
+              <span class="programming-language-name">
+                Rust ,
+              </span>
+            </span>
+
+            
+
+            <span class="programming-languages-group">
+              <span class="programming-language-name">
+                Java ,
+              </span>
+            </span>
+
+            
+
+            <span class="programming-languages-group">
+              <span class="programming-language-name">
+                Scala 
+              </span>
+            </span>
+
+            
+          </li>
+
+          
         </ul>
         </div>
 
@@ -137,97 +222,196 @@
           <h3 class="subsection-title">Other Technical Skills</h3>
 
           <ul>
-            {% for item in skills.other %}
+            
 
             <li>
-              <p>{{ item }}</p>
+              <p>Linux user for all personal computing needs for the past 7 years, adept in most common command line utilities in the Linux/Unix environment (bash/zsh, sed, grep, ssh, vim...), as well as the Unix filesystem architecture and API</p>
             </li>
 
-            {% endfor %}
+            
+
+            <li>
+              <p>Experienced with the use of version control with Git</p>
+            </li>
+
+            
           </ul>
         </div>
 
       </div>
-      {#
-      <!-- EXPERIENCE -->
-      #} 
+       
       <div class "resume-section" id = "experience">
       <h2 class="section-title">Experience</h2>
 
-      {% for item in experience %}
+      
 
       <div class="experience-item">
 
         <span class = "past-job-header">
         <span class="past-job-title">
-          {{item.job_title}}, {{ item.company_name}}
+          Technical Consultant, Ikolith Recreations
         </span>
         <span class="past-job-timespan">
-          {{ item.year_start }}-{{ item.year_end }}
+          2020-2022
         </span>
         </span>
-        <p class="past-job-description">{{ item.general_description }}</p>
+        <p class="past-job-description">Technical and creative work with a local Seattle-based independent tabletop game studio.</p>
 
-        {% if item.bullet_points %}
+        
         <ul>
-          {% for point in item.bullet_points %}
+          
 
-          <li class="past-job-bullet-point">{{ point }}</li>
-          {% endfor %}
+          <li class="past-job-bullet-point">Wrote and managed utility scripts, mostly in Python and bash, to automate workflow tasks such as document formatting.</li>
+          
+
+          <li class="past-job-bullet-point">Developed an automated pipeline to convert and compile Markdown documentation into Latex for publication. Created a program to partially simulate the evolution of a fictional language over time as a worldbuilding and writing aid</li>
+          
         </ul>
-        {% endif %}
+        
       </div>
-      {% endfor %}
+      
     </div>
-    {#
-    <!-- PROJECTS -->
-    #}
+    
     <div class="resume-section" id="projects">
     <h2 class="section-title">Projects</h2>
     <ul>
-      {% for project in projects if project.show %}
+      
       <li class="project-item">
         <span class="project-header">
           <span class="project-title-header">
-            <a href="{{project.link}}"> {{ project.name }} </a>
+            <a href="https://github.com/keagud/della"> Della </a>
           </span>
           
           <span class="project-keywords">
-            {% for keyword in project.tech_keywords %}
+            
             <span class="project-keyword">
-              {{ keyword }}{% if not loop.last %},{% endif %}
+              Python
             </span>
 
-            {% endfor %}
+            
           
           </span>
         </span>
 
             <ul class="project-bullet-points-list">
-              {% for point in project.bullet_points %}
+              
 
               <li>
-                <p>{{ point }}</p>
+                <p>A personal orginizer similar to TaskWarrior, with the added feature of natural language processing to allow todos to be managed with a simple, naturalistic command syntax, e.g. "pick up Dave at the airport a week from this Wednesday." </p>
               </li>
-              {% endfor %}
+              
+
+              <li>
+                <p>Users can interact with and view their upcoming tasks either from the command line, or from a formatted prompt featuring full syntax highlighting. Tasks can be set to sync to a server for access from multiple devices.</p>
+              </li>
+              
+
+              <li>
+                <p>Written in pure Python; remote syncing is handled over SSH via the Paramiko library</p>
+              </li>
+              
             </ul>
           </span>
         </span>
       </li>
 
-      {% endfor %}
+      
+      <li class="project-item">
+        <span class="project-header">
+          <span class="project-title-header">
+            <a href="https://github.com/keagud/quackbot"> Quackbot </a>
+          </span>
+          
+          <span class="project-keywords">
+            
+            <span class="project-keyword">
+              Javascript,
+            </span>
+
+            
+            <span class="project-keyword">
+              Typescript,
+            </span>
+
+            
+            <span class="project-keyword">
+              Node.js
+            </span>
+
+            
+          
+          </span>
+        </span>
+
+            <ul class="project-bullet-points-list">
+              
+
+              <li>
+                <p>A Discord bot with a modular design, allowing features and commands to be easily swapped out. Current functionality includes: fortune telling with a simulated Tarot deck, generation of images based on a macro, user search of Wikipedia. </p>
+              </li>
+              
+
+              <li>
+                <p>Written in Typescript and Javascript using Node.js and npm. Hosted on Google Cloud, with building and deployment fully automated using a Github Actions CI/CD workflow script</p>
+              </li>
+              
+            </ul>
+          </span>
+        </span>
+      </li>
+
+      
+      <li class="project-item">
+        <span class="project-header">
+          <span class="project-title-header">
+            <a href="https://github.com/keagud/linelog"> Linelog </a>
+          </span>
+          
+          <span class="project-keywords">
+            
+            <span class="project-keyword">
+              Python,
+            </span>
+
+            
+            <span class="project-keyword">
+              Git
+            </span>
+
+            
+          
+          </span>
+        </span>
+
+            <ul class="project-bullet-points-list">
+              
+
+              <li>
+                <p>A development productivity tool that calculates the number of lines of code commited in Git by a given user, over a given interval of time, and displays the results as a curses-style graph on the command line broken down by language. Definitions for what should count as a "line" are fully customizable for each filetype.</p>
+              </li>
+              
+            </ul>
+          </span>
+        </span>
+      </li>
+
+      
     </ul>
     </div>
 
-    {#
-    <!-- HOBBIES/OTHER -->
-    #}
+    
     <div class="resume-section" id="other-interests">
       <h2 class="section-title">Other Interests</h2>
       <ul>
-        {% for item in hobbies %}
-        <li>{{ item }}</li>
-        {% endfor %}
+        
+        <li> Ancient languages (Latin, Attic Greek)</li>
+        
+        <li>Ancient languages   (Lisp, C89, Ada) </li>
+        
+        <li>Constructed Languages</li>
+        
+        <li>Distance running, cycling</li>
+        
       </ul>
     </div>
 
