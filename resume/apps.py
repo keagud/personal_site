@@ -5,12 +5,7 @@ from shutil import copy
 from django.apps import AppConfig
 
 
-class ResumeConfig(AppConfig):
-    verbose_name = "My Resume"
-    name = "resume"
 
-    def ready(self):
-        resume_build_path = Path(__file__).parent.joinpath("resume")
-        build_script_path = resume_build_path.joinpath("build.py").as_posix()
-        build_step = subprocess.run(["python3", build_script_path])
-        build_step.check_returncode()
+class ResumeConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "resume"
