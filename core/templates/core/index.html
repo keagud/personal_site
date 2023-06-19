@@ -1,5 +1,4 @@
 {% extends "base.html" %} {% block content %}
-
 <p>
   Hello! I'm Keaton and this is my website. If you like it, consider clicking
   one of these links to look at other things I've made, and potentially hire me
@@ -7,34 +6,58 @@
 </p>
 
 
-{% comment %}
+<div id = "page-links-list-container">
 
-<!-- TODO download resume and serve it here -->
-<h2><a href="/resume">My Resume</a></h2>
-<p>I think I'm pretty good at editing text files, if I may say so.</p>
+<ul>
+  <li>
+    <div class="content-link">
+      <span>
+        <em class="main-page-link">
+          <a href="/about"> About Me</a>
+        </em>
+        <span><p>I was born at a very young age</p></span>
+      </span>
+    </div>
 
+    <div class="content-link">
+      <span>
+        <em class="main-page-link">
+          <a href="http://localhost:8000/resume">My Resume</a>
+        </em>
+      </span>
+      <span><p>Have Thinkpad, will travel</p></span>
+    </div>
+  </li>
 
-{% endcomment %}
+  <li>
+    <div class="content-link">
+      <em class="main-page-link">
+        <a href="https://github.com/keagud">My GitHub</a>
+      </em>
 
+      <p>Projects I have made, or am currently making.</p>
+    </div>
+  </li>
 
-<h2> <a href = "/resume">My Resume</a></h2>
-<p>Have Thinkpad, will travel</p>
+  {% comment %}
 
-<h2><a href="https://github.com/keagud">My GitHub</a></h2>
-<p>Projects I have made, or am currently making.</p>
+  <!-- TODO -->
 
+  <li>
+    <div class="content-link">
+      <em class="main-page-link">
+        <a href="/blog"> My Blog </a>
+      </em>
+      <p>Did you know "blog" is short for "web log"? Anyway, it's that.</p>
+    </div>
+  </li>
 
-{% comment %}
-<h2><a href="/blog">My Posts</a></h2>
-<p>
-  Did you know <i>blog</i> is a shortening of <i>web log?</i> Anyway, it's that.
-</p>
-{% endcomment %}
+  {% endcomment %}
+</ul>
+
+</div>
 
 <br />
 <br />
-<p>
-  made with <a href="https://github.com/edwardtufte/tufte-css">tufte css</a>
-</p>
 
 {%endblock content%}

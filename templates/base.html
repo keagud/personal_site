@@ -4,17 +4,28 @@
   <head>
     <meta charset="utf-8">
     <title>Welcome to my Web Site!</title>
-    <link rel="stylesheet" href="{% static 'css/tufte.css' %}">
-    <link rel="stylesheet" href="{% static 'css/index-page-base.css' %}">
+    <link rel="stylesheet" href="{% static 'core/styles/styles.css' %}">
+    <link rel = "icon" type = "image/x-icon" href = "{% static 'core/favicon.ico' %}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
+  <header id = "page-header">
   <h1><a href = "https://implicit.computer">implicit.computer</a></h1>
-  <p><i id="quote"></i></p>
+  
+  <div id = "quote-box">
+  <p><em id="quote"></em></p>
+  </div>
+  </header>
   <br>
+
+
+  <section id = "page-content">
   {% block content %}
   {% endblock %}
+  </section>
+
+  
   <script>
     const quotesJson = (()=>{
           let reader = new XMLHttpRequest();
