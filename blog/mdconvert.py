@@ -1,3 +1,7 @@
+"""
+mdconvert
+"""
+
 import markdown
 from pathlib import Path
 
@@ -5,14 +9,14 @@ from bs4 import BeautifulSoup
 
 
 def convert(
-    filepath: Path | str,
+    filepath: Path | str = "./test.md",
     output_file: Path | str | None = None,
     pretty: bool = True,
-) -> str:
+):
     filepath = Path(filepath)
 
     if output_file is None:
-        output_filename = f"{filepath.stem}.html"
+        output_filename = f"output_{filepath.stem}.html"
         output_file = filepath.parent.joinpath(output_filename)
 
     output_file = Path(output_file)
@@ -33,4 +37,13 @@ def convert(
         soup = BeautifulSoup(processed_contents, "html.parser")
         processed_contents = soup.prettify()
 
-    return processed_contents
+    with open(output_file, "w") as outfile:
+        outfile.write(processed_contents)
+
+
+def main():
+    convert()
+
+
+if __name__ == "__main__":
+    main()
