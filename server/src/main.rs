@@ -2,6 +2,7 @@ use blog::init_table_connection;
 use blog::reply_from_slug;
 use warp::Filter;
 
+
 pub mod common {
 
     use chrono::{DateTime, NaiveDateTime, Utc};
@@ -22,10 +23,10 @@ pub mod common {
 pub mod blog {
 
     use anyhow::{self, format_err};
-    use std::{path::PathBuf};
+    use std::path::PathBuf;
 
     use crate::common;
-    
+
     use rusqlite;
     use std::fs::read_to_string;
     use warp::reply::{html, with_status};
@@ -113,13 +114,34 @@ pub mod blog {
         Ok(posts_iter.filter_map(|p| p.ok()).collect::<Vec<Post>>())
     }
 
-    pub fn make_posts_list(
-        conn: &rusqlite::Connection,
-        _format_fn: &dyn Fn(&Post) -> String,
-    ) -> Box<dyn warp::Reply> {
-        let _all_posts = get_all_posts(conn).expect("Post metadata");
-        todo!();
+    pub fn make_posts_list(conn: &rusqlite::Connection) -> String {
+        let all_posts = get_all_posts(conn).expect("Post metadata");
+        let posts_list_markup = all_posts
+            .iter()
+            .map(|p| {
+                format!(
+                    r#"
+                <li> 
+                    <span class="posts-list-item">
+                        <span class="post-date">{}</span> 
+                        <span class="post-title>
+                            <a href="/blog/{}">{}</a>
+                        </span>
+                    </span>
+                </li>"#,
+                    &p.date_str(),
+                    &p.slug,
+                    &p.title,
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        format!("<ul>\n{}\n</ul>", posts_list_markup)
     }
+
+
+    
 }
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
