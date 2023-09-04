@@ -4,16 +4,28 @@ use warp::Filter;
 
 pub mod common {
 
+    use chrono::{DateTime, NaiveDateTime, Utc};
     pub static POSTS_DB_PATH: &str = "assets/posts.db";
     pub static POSTS_FILES_PATH: &str = "assets/posts/";
+
+    pub fn timestamp_date_format(timestamp: usize, format_str: &str) -> String {
+        let naive =
+            NaiveDateTime::from_timestamp_opt(timestamp as i64, 0).expect("Timestamp is valid");
+
+        let dt: DateTime<Utc> = naive.and_local_timezone(Utc).unwrap();
+
+        dt.format(format_str).to_string()
+    }
 }
 
+#[allow(dead_code)]
 pub mod blog {
 
     use anyhow::{self, format_err};
-    use std::path::PathBuf;
+    use std::{path::PathBuf};
 
     use crate::common;
+    
     use rusqlite;
     use std::fs::read_to_string;
     use warp::reply::{html, with_status};
@@ -23,6 +35,12 @@ pub mod blog {
         pub title: String,
         pub timestamp: usize,
         pub slug: String,
+    }
+
+    impl Post {
+        fn date_str(&self) -> String {
+            common::timestamp_date_format(self.timestamp, "%F")
+        }
     }
 
     pub fn add_post(conn: &rusqlite::Connection, post: &Post) -> anyhow::Result<()> {
@@ -72,13 +90,35 @@ pub mod blog {
           title VARCHAR(255) NOT NULL,
           timestamp INTEGER NOT NULL,
           slug VARCHAR(255) UNIQUE NOT NULL,
-          content_path VARCHAR(255) NOT NULL
         );
         "#,
             (),
         )?;
 
         Ok(conn)
+    }
+
+    pub fn get_all_posts(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Post>> {
+        let mut stmt =
+            conn.prepare("SELECT title, timestamp, slug FROM post ORDER BY timestamp DESC")?;
+
+        let posts_iter = stmt.query_map([], |row| {
+            Ok(Post {
+                title: row.get(0)?,
+                timestamp: row.get(1)?,
+                slug: row.get(2)?,
+            })
+        })?;
+
+        Ok(posts_iter.filter_map(|p| p.ok()).collect::<Vec<Post>>())
+    }
+
+    pub fn make_posts_list(
+        conn: &rusqlite::Connection,
+        _format_fn: &dyn Fn(&Post) -> String,
+    ) -> Box<dyn warp::Reply> {
+        let _all_posts = get_all_posts(conn).expect("Post metadata");
+        todo!();
     }
 }
 #[tokio::main]
