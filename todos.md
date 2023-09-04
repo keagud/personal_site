@@ -28,10 +28,10 @@ Taken from: https://xeiaso.net/blog/new-language-blog-backend-2022-03-02
 
 
 ## Starting Steps
-- [ ] Serve a static file at / that contains <h1>Hello, world!</h1>
-- [ ] Create a SQLite connection and the posts table
-- [ ] Insert a post into your database by hand with the sqlite3 console
-- [ ] Wire up a /blog/{date}/{slug} route to show that post
+- [X] Serve a static file at / that contains <h1>Hello, world!</h1>
+- [X] Create a SQLite connection and the posts table
+- [X] Insert a post into your database by hand with the sqlite3 console
+- [X] Wire up a /blog/{date}/{slug} route to show that post
 - [ ] Wire up /blog to show all the posts in the database
 - [ ] Make static pages for / and /contact
 - [ ] Choose a templating language and create a base template
