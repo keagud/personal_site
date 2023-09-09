@@ -23,6 +23,7 @@ pub mod common {
 pub mod blog {
 
     use anyhow::{self, format_err};
+    use serde::{Deserialize, Serialize};
     use std::path::PathBuf;
 
     use crate::common;
@@ -39,9 +40,25 @@ pub mod blog {
     }
 
     impl Post {
-        fn date_str(&self) -> String {
+        pub fn date_str(&self) -> String {
             common::timestamp_date_format(self.timestamp, "%F")
         }
+
+        pub fn as_display(&self) -> PostDisplay {
+            let date = self.date_str();
+            PostDisplay {
+                title: self.title.to_owned(),
+                slug: self.slug.to_owned(),
+                date,
+            }
+        }
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct PostDisplay {
+        pub title: String,
+        pub date: String,
+        pub slug: String,
     }
 
     pub fn add_post_metadata_to_db(conn: &rusqlite::Connection, post: &Post) -> anyhow::Result<()> {
@@ -90,7 +107,7 @@ pub mod blog {
           id INTEGER PRIMARY KEY,
           title VARCHAR(255) NOT NULL,
           timestamp INTEGER NOT NULL,
-          slug VARCHAR(255) UNIQUE NOT NULL,
+          slug VARCHAR(255) UNIQUE NOT NULL
         );
         "#,
             (),
@@ -101,7 +118,7 @@ pub mod blog {
 
     pub fn get_all_post_metadata(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Post>> {
         let mut stmt =
-            conn.prepare("SELECT title, timestamp, slug FROM post ORDER BY timestamp DESC")?;
+            conn.prepare("SELECT title, timestamp, slug FROM post ORDER BY timestamp DESC;")?;
 
         let posts_iter = stmt.query_map([], |row| {
             Ok(Post {
@@ -122,15 +139,136 @@ pub mod blog {
         todo!();
     }
 }
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    let _conn = init_table_connection()?;
 
-    let _first_post = blog::Post {
+pub mod render {
+
+    use std::path::PathBuf;
+
+    use crate::blog;
+    use crate::blog::PostDisplay;
+    use crate::common;
+    use anyhow::format_err;
+    use handlebars;
+    use handlebars::{to_json, Handlebars};
+    use rusqlite::Connection;
+    use serde_json;
+
+    struct BasePageParams {
+        pub title: String,
+        pub content: String,
+    }
+
+    pub trait RenderablePage {
+        fn title(&self) -> String;
+        fn content(&self) -> anyhow::Result<String>;
+    }
+
+    #[derive(Debug)]
+    pub struct IndexPage {
+        pub posts: Vec<blog::PostDisplay>,
+    }
+
+    impl IndexPage {
+        pub fn from_db(conn: &Connection) -> anyhow::Result<Self> {
+            let posts = blog::get_all_post_metadata(conn)?
+                .iter()
+                .map(|p| p.as_display())
+                .collect::<Vec<blog::PostDisplay>>();
+
+            Ok(IndexPage { posts })
+        }
+    }
+
+    impl RenderablePage for IndexPage {
+        fn title(&self) -> String {
+            String::from("Posts")
+        }
+
+        fn content(&self) -> anyhow::Result<String> {
+            let mut hb = Handlebars::new();
+            let template_path = get_template_path("posts_list")?;
+
+            hb.register_template_file("posts_list", template_path)?;
+
+            let mut template_values = serde_json::Map::new();
+            let list_items_json = to_json(&self.posts);
+            template_values.insert(String::from("posts"), list_items_json);
+
+            let rendered_content = hb.render("posts_list".into(), &template_values)?;
+            Ok(rendered_content)
+        }
+    }
+
+    pub fn render_into_base<T: RenderablePage>(page: &T) -> anyhow::Result<String> {
+        let base_template_path = get_template_path("base")?;
+        let mut hb = Handlebars::new();
+        hb.register_template_file("base", base_template_path)?;
+
+        let page_title = page.title();
+        let page_body_content = page.content()?;
+
+        let rendered_content = hb.render(
+            "base",
+            &serde_json::json!({"title" : page_title, "content": page_body_content}),
+        )?;
+        Ok(rendered_content)
+    }
+
+    fn get_template_path(template_name: &str) -> anyhow::Result<PathBuf> {
+        let p = PathBuf::from(common::TEMPLATES_PATH);
+        let template_filename = format!("{}.html", template_name);
+        let template_path = p.join(template_filename).canonicalize()?;
+
+        if template_path.try_exists()? {
+            Ok(template_path)
+        } else {
+            Err(format_err!(
+                "Template file not found or not accessable at {:?}",
+                template_path
+            ))
+        }
+    }
+
+    pub fn init_templates(template_names: Vec<&'static str>) -> Handlebars {
+        let mut hb = Handlebars::new();
+
+        for t in template_names {
+            let template_path = get_template_path(t).expect("Template should be valid");
+            hb.register_template_file(t, template_path)
+                .expect("Template registration ok");
+        }
+
+        hb
+    }
+}
+
+#[allow(dead_code)]
+fn test_main() -> anyhow::Result<()> {
+    let conn = init_table_connection()?;
+
+    let first_post = blog::Post {
         title: String::from("Shave your head!"),
         timestamp: 1687935600,
         slug: String::from("bald"),
     };
+
+    blog::add_post_metadata_to_db(&conn, &first_post);
+
+    let ip = render::IndexPage::from_db(&conn)?;
+
+    let content = render::render_into_base(&ip)?;
+    println!("{ip:?}");
+    println!("{content}");
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let conn = init_table_connection()?;
+
+    let index_page = render::IndexPage::from_db(&conn)?;
+
 
     let route = warp::path!("blog" / String).map(|slug: String| reply_from_slug(&slug));
 
