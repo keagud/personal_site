@@ -7,6 +7,7 @@ pub mod common {
     use chrono::{DateTime, NaiveDateTime, Utc};
     pub static POSTS_DB_PATH: &str = "assets/posts.db";
     pub static POSTS_FILES_PATH: &str = "assets/posts/";
+    pub static TEMPLATES_PATH: &str = "assets/templates";
 
     pub fn timestamp_date_format(timestamp: usize, format_str: &str) -> String {
         let naive =
@@ -22,10 +23,10 @@ pub mod common {
 pub mod blog {
 
     use anyhow::{self, format_err};
-    use std::{path::PathBuf};
+    use std::path::PathBuf;
 
     use crate::common;
-    
+
     use rusqlite;
     use std::fs::read_to_string;
     use warp::reply::{html, with_status};
@@ -43,7 +44,7 @@ pub mod blog {
         }
     }
 
-    pub fn add_post(conn: &rusqlite::Connection, post: &Post) -> anyhow::Result<()> {
+    pub fn add_post_metadata_to_db(conn: &rusqlite::Connection, post: &Post) -> anyhow::Result<()> {
         let post_files_path = PathBuf::from(common::POSTS_FILES_PATH).canonicalize()?;
         let post_filename = format!("{}.md", post.slug.to_lowercase());
 
@@ -98,7 +99,7 @@ pub mod blog {
         Ok(conn)
     }
 
-    pub fn get_all_posts(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Post>> {
+    pub fn get_all_post_metadata(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Post>> {
         let mut stmt =
             conn.prepare("SELECT title, timestamp, slug FROM post ORDER BY timestamp DESC")?;
 
@@ -117,7 +118,7 @@ pub mod blog {
         conn: &rusqlite::Connection,
         _format_fn: &dyn Fn(&Post) -> String,
     ) -> Box<dyn warp::Reply> {
-        let _all_posts = get_all_posts(conn).expect("Post metadata");
+        let _all_posts = get_all_post_metadata(conn).expect("Post metadata");
         todo!();
     }
 }

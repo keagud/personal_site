@@ -1,0 +1,16 @@
+<h1>Posts List</h1>
+
+{{! Template for the posts index }}
+{{! Expects a list of objects with fields: date_str, slug, title }}
+
+<ul>
+  {{#each posts}}
+  <li class="post-list-entry">
+    <a href="/blog/{{this.slug}}" class="post-list-link">
+      <span class="post-list-date">{{this.date_str}}</span>
+      <span class="post-list-title"> {{this.title}}</span>
+    </a>
+
+  </li>
+  {{/each}}
+</ul>
