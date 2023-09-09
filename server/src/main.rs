@@ -1,6 +1,4 @@
-use blog::init_table_connection;
-use blog::reply_from_slug;
-use warp::Filter;
+use axum::{routing::get, Router, Server};
 
 pub mod common {
 
@@ -19,7 +17,6 @@ pub mod common {
     }
 }
 
-#[allow(dead_code)]
 pub mod blog {
 
     use anyhow::{self, format_err};
@@ -29,8 +26,6 @@ pub mod blog {
     use crate::common;
 
     use rusqlite;
-    use std::fs::read_to_string;
-    use warp::reply::{html, with_status};
 
     #[derive(Debug, PartialEq, Eq)]
     pub struct Post {
@@ -84,20 +79,6 @@ pub mod blog {
         Ok(())
     }
 
-    pub fn reply_from_slug(slug: &str) -> Box<dyn warp::Reply> {
-        let post_file_path_str = format!("{}/{}.html", common::POSTS_FILES_PATH, slug);
-        let post_file_path = PathBuf::from(&post_file_path_str);
-
-        if let Ok(s) = read_to_string(post_file_path) {
-            Box::new(html(s))
-        } else {
-            Box::new(with_status(
-                html("404 page goes here"),
-                warp::http::StatusCode::NOT_FOUND,
-            ))
-        }
-    }
-
     pub fn init_table_connection() -> anyhow::Result<rusqlite::Connection> {
         let conn = rusqlite::Connection::open(common::POSTS_DB_PATH)?;
 
@@ -144,19 +125,14 @@ pub mod render {
 
     use std::path::PathBuf;
 
-    use crate::blog;
-    use crate::blog::PostDisplay;
+    use crate::blog::{self, init_table_connection};
     use crate::common;
     use anyhow::format_err;
+
     use handlebars;
     use handlebars::{to_json, Handlebars};
     use rusqlite::Connection;
     use serde_json;
-
-    struct BasePageParams {
-        pub title: String,
-        pub content: String,
-    }
 
     pub trait RenderablePage {
         fn title(&self) -> String;
@@ -194,7 +170,7 @@ pub mod render {
             let list_items_json = to_json(&self.posts);
             template_values.insert(String::from("posts"), list_items_json);
 
-            let rendered_content = hb.render("posts_list".into(), &template_values)?;
+            let rendered_content = hb.render("posts_list", &template_values)?;
             Ok(rendered_content)
         }
     }
@@ -212,6 +188,15 @@ pub mod render {
             &serde_json::json!({"title" : page_title, "content": page_body_content}),
         )?;
         Ok(rendered_content)
+    }
+
+    pub fn make_posts_index() -> anyhow::Result<String> {
+        let conn = init_table_connection()?;
+        let index_page = IndexPage::from_db(&conn)?;
+
+        let raw = render_into_base(&index_page)?;
+
+        Ok(raw)
     }
 
     fn get_template_path(template_name: &str) -> anyhow::Result<PathBuf> {
@@ -244,7 +229,7 @@ pub mod render {
 
 #[allow(dead_code)]
 fn test_main() -> anyhow::Result<()> {
-    let conn = init_table_connection()?;
+    let conn = blog::init_table_connection()?;
 
     let first_post = blog::Post {
         title: String::from("Shave your head!"),
@@ -252,7 +237,7 @@ fn test_main() -> anyhow::Result<()> {
         slug: String::from("bald"),
     };
 
-    blog::add_post_metadata_to_db(&conn, &first_post);
+    let _ = blog::add_post_metadata_to_db(&conn, &first_post);
 
     let ip = render::IndexPage::from_db(&conn)?;
 
@@ -263,16 +248,38 @@ fn test_main() -> anyhow::Result<()> {
     Ok(())
 }
 
+pub mod route {
+
+    use axum::{extract::Path, response::Html};
+
+    use crate::render;
+
+    pub async fn post(Path(slug): Path<String>) -> Html<String> {
+        Html(format!("The slug was {slug}"))
+    }
+
+    pub async fn posts_list() -> Html<String> {
+        match render::make_posts_index() {
+            Ok(s) => Html(s),
+            Err(e) => Html(format!("<h1>Rendering error!<h1> <code>{e:?}</code>")),
+        }
+    }
+
+    pub async fn home() -> Html<String> {
+        Html("This is the homepage!".into())
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let conn = init_table_connection()?;
+    let app = Router::new()
+        .route("/", get(route::home))
+        .route("/blog", get(route::posts_list))
+        .route("/blog/:slug", get(route::post));
 
-    let index_page = render::IndexPage::from_db(&conn)?;
-
-
-    let route = warp::path!("blog" / String).map(|slug: String| reply_from_slug(&slug));
-
-    warp::serve(route).run(([127, 0, 0, 1], 8000)).await;
+    Server::bind(&"0.0.0.0:8000".parse()?)
+        .serve(app.into_make_service())
+        .await?;
 
     Ok(())
 }
