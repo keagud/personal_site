@@ -111,14 +111,6 @@ pub mod blog {
 
         Ok(posts_iter.filter_map(|p| p.ok()).collect::<Vec<Post>>())
     }
-
-    pub fn make_posts_list(
-        conn: &rusqlite::Connection,
-        _format_fn: &dyn Fn(&Post) -> String,
-    ) -> Box<dyn warp::Reply> {
-        let _all_posts = get_all_post_metadata(conn).expect("Post metadata");
-        todo!();
-    }
 }
 
 pub mod render {
