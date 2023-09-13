@@ -5,7 +5,8 @@ pub mod common {
     use chrono::{DateTime, NaiveDateTime, Utc};
 
     pub static POSTS_DB_PATH: &str = "assets/posts.db";
-    pub static POSTS_FILES_PATH: &str = "assets/posts/";
+    pub static POSTS_FILES_PATH: &str = "assets/posts/html";
+    pub static POSTS_MARKDOWN_PATH: &str = "assets/posts/md";
     pub static TEMPLATES_PATH: &str = "assets/templates";
 
     pub fn timestamp_date_format(timestamp: usize, format_str: &str) -> String {
@@ -188,7 +189,7 @@ pub mod blog {
 
     impl RenderablePage for PostPage {
         fn title(&self) -> String {
-            todo!()
+            String::from(&self.0.title)
         }
 
         fn content(&self) -> anyhow::Result<String> {
