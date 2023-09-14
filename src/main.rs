@@ -1,13 +1,15 @@
 use axum::{routing::get, Router, Server};
 
+mod render;
 pub mod common {
 
     use chrono::{DateTime, NaiveDateTime, Utc};
 
-    pub static POSTS_DB_PATH: &str = "../assets/posts.db";
-    pub static POSTS_FILES_PATH: &str = "../assets/posts/html";
-    pub static POSTS_MARKDOWN_PATH: &str = "../assets/posts/md";
-    pub static TEMPLATES_PATH: &str = "../assets/templates";
+    //relative to crate root
+    pub static POSTS_DB_PATH: &str = "./assets/posts.db";
+    pub static POSTS_FILES_PATH: &str = "./assets/posts/html";
+    pub static POSTS_MARKDOWN_PATH: &str = "./assets/posts/md";
+    pub static TEMPLATES_PATH: &str = "./assets/templates";
 
     pub fn timestamp_date_format(timestamp: usize, format_str: &str) -> String {
         let naive =

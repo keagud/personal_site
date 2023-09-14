@@ -20,7 +20,6 @@ use markup5ever_rcdom as rcdom;
 use markup5ever_rcdom::RcDom;
 use scraper::{Html, Selector};
 
-//"\(:sidenote(.*)sidenote:\)"gms
 fn parse_html(html_doc: &str) -> anyhow::Result<RcDom> {
     let tb = TreeBuilderOpts {
         scripting_enabled: false,
