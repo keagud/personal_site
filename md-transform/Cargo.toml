@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
+handlebars = "4.4.0"
 html5ever = "0.26.0"
 markdown = "1.0.0-alpha.13"
 markup5ever_rcdom = "0.2.0"
+regex = "1.9.5"
 scraper = "0.17.1"

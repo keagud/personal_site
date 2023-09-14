@@ -1,9 +1,10 @@
 use anyhow;
 use rcdom::NodeData;
+use regex;
+use std::fs;
 use std::fs::read_to_string;
+use std::fs::File;
 use std::path::PathBuf;
-
-use scraper::{Html, Selector};
 
 use anyhow::format_err;
 use html5ever::{
@@ -17,7 +18,9 @@ use markdown;
 use markdown::to_html_with_options;
 use markup5ever_rcdom as rcdom;
 use markup5ever_rcdom::RcDom;
+use scraper::{Html, Selector};
 
+//"\(:sidenote(.*)sidenote:\)"gms
 fn parse_html(html_doc: &str) -> anyhow::Result<RcDom> {
     let tb = TreeBuilderOpts {
         scripting_enabled: false,
@@ -38,6 +41,35 @@ fn md_file_to_html(md_path: &PathBuf) -> anyhow::Result<String> {
     let file_content = read_to_string(md_path)?;
 
     to_html_with_options(&file_content, &markdown::Options::gfm()).map_err(|e| format_err!("{}", e))
+}
+
+fn process_sidenotes(document_input: &str) -> String {
+    let mut document = String::from(document_input);
+    let pattern_str = format!(r#"\(:sidenote(?<text>.*?)sidenote:\)"#);
+    let mut counter: usize = 1;
+    let re = regex::RegexBuilder::new(&pattern_str)
+        .dot_matches_new_line(true)
+        .build()
+        .unwrap();
+
+    while let Some(_) = re.find(&document) {
+        let mn_id = format!("mn-{counter}");
+        counter += 1;
+
+        let replacement = format!(
+            r#"<label for="{mn_id}" class="margin-toggle"> &#8853;</label> 
+            <input type="checkbox" id="{mn_id}" class="margin-toggle"/>
+            <span class="marginnote">
+            $text
+            </span> "#
+        );
+
+        let rep = re.replace(&document, replacement).to_string();
+
+        document = rep;
+    }
+
+    document
 }
 
 fn walk(indent: usize, handle: &rcdom::Handle) {
@@ -61,13 +93,15 @@ fn main() -> anyhow::Result<()> {
 
     let posts_md_dir = PathBuf::from(POSTS_MD_DIR).canonicalize()?;
 
-    let test_post = posts_md_dir.join("bald.md").canonicalize()?;
+    let test_post = posts_md_dir.join("sidenote.md").canonicalize()?;
 
     let rendered_html = md_file_to_html(&test_post).unwrap();
 
-    let dom = parse_html(&rendered_html)?;
+    let s = process_sidenotes(&rendered_html);
 
-    walk(0, &dom.document);
+    let f = fs::write(PathBuf::from("../assets/").join("rendered.html"), &s)?;
+
+    println!("{s}");
 
     Ok(())
 }
