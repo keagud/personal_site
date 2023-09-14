@@ -6,4 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.75"
+html5ever = "0.26.0"
 markdown = "1.0.0-alpha.13"
+markup5ever_rcdom = "0.2.0"
+scraper = "0.17.1"
