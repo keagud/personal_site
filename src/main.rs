@@ -11,6 +11,7 @@ pub mod common {
     pub static POSTS_FILES_PATH: &str = "./assets/posts/html";
     pub static POSTS_MARKDOWN_PATH: &str = "./assets/posts/md";
     pub static TEMPLATES_PATH: &str = "./assets/templates";
+    pub static STATIC_PAGES_PATH: &str = "./assets/static";
 
     pub fn timestamp_date_format(timestamp: usize, format_str: &str) -> String {
         let naive =
@@ -20,27 +21,6 @@ pub mod common {
 
         dt.format(format_str).to_string()
     }
-}
-
-#[allow(dead_code)]
-fn test_main() -> anyhow::Result<()> {
-    let conn = blog::init_table_connection()?;
-
-    let first_post = blog::Post {
-        title: String::from("Shave your head!"),
-        timestamp: 1687935600,
-        slug: String::from("bald"),
-    };
-
-    let _ = blog::add_post_metadata_to_db(&conn, &first_post);
-
-    let ip = blog::IndexPage::from_db(&conn)?;
-
-    let content = blog::render_into_base(&ip)?;
-    println!("{ip:?}");
-    println!("{content}");
-
-    Ok(())
 }
 
 pub mod route {

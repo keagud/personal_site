@@ -1,7 +1,8 @@
 use anyhow::{self, format_err};
 use serde::{Deserialize, Serialize};
 use std::{
-    fs,
+    fs::{self, File},
+    io::BufReader,
     path::{Path, PathBuf},
 };
 
@@ -43,6 +44,14 @@ impl Post {
             slug: self.slug.to_owned(),
             date,
         }
+    }
+
+    pub fn md_path(&self) -> PathBuf {
+        PathBuf::from(common::POSTS_MARKDOWN_PATH).join(format!("{}.md", self.slug))
+    }
+
+    pub fn html_path(&self) -> PathBuf {
+        PathBuf::from(common::POSTS_FILES_PATH).join(format!("{}.html", self.slug))
     }
 }
 
@@ -114,100 +123,139 @@ fn post_data_as_json_str(conn: &rusqlite::Connection) -> anyhow::Result<String> 
     Ok(serde_json::to_string_pretty(&post_data)?)
 }
 
-pub fn dump_posts_json(
-    conn: &rusqlite::Connection,
-    dump_path: impl AsRef<Path>,
-) -> anyhow::Result<()> {
-    let dump_path_buf = PathBuf::from(dump_path.as_ref());
-
-    match dump_path_buf.extension() {
+fn assure_is_json_path(p: &impl AsRef<Path>) -> anyhow::Result<()> {
+    match p.as_ref().extension() {
         None => Err(format_err!("Invalid file type: must be json")),
         Some(o) => match o.to_str() {
             None => Err(format_err!("Invalid file name")),
             Some(s) if s == "json" => Ok(()),
             Some(x) => Err(format_err!("Invalid filetype {x:?}; must be json")),
         },
-    }?;
+    }
+}
 
+pub fn dump_posts_json(
+    conn: &rusqlite::Connection,
+    dump_path: impl AsRef<Path>,
+) -> anyhow::Result<()> {
+    let dump_path_buf = PathBuf::from(dump_path.as_ref());
+
+    assure_is_json_path(&dump_path_buf)?;
     let posts_json_str = post_data_as_json_str(conn)?;
     fs::write(dump_path_buf, posts_json_str)?;
 
     Ok(())
 }
 
-pub trait RenderablePage {
-    fn title(&self) -> String;
-    fn content(&self) -> anyhow::Result<String>;
-}
+pub fn load_posts_json(
+    conn: &rusqlite::Connection,
+    load_path: impl AsRef<Path>,
+) -> anyhow::Result<()> {
+    assure_is_json_path(&load_path)?;
 
-#[derive(Debug)]
-pub struct IndexPage(Vec<PostDisplay>);
+    let fp = File::open(load_path)?;
 
-impl IndexPage {
-    pub fn from_db(conn: &Connection) -> anyhow::Result<Self> {
-        let posts = get_all_post_metadata(conn)?
-            .iter()
-            .map(|p| p.as_display())
-            .collect::<Vec<PostDisplay>>();
+    let reader = BufReader::new(fp);
+    let posts: Vec<Post> = serde_json::from_reader(reader)?;
 
-        Ok(IndexPage(posts))
-    }
-}
-
-impl RenderablePage for IndexPage {
-    fn title(&self) -> String {
-        String::from("Posts")
+    for ref post in posts {
+        conn.execute(
+            r#"INSERT OR IGNORE INTO post (title, timestamp, slug) VALUES (?1, ?2, ?3, )"#,
+            (&post.title, &post.timestamp, &post.slug),
+        )?;
     }
 
-    fn content(&self) -> anyhow::Result<String> {
+    Ok(())
+}
+
+pub fn posts_index_from_db(conn: &Connection) -> anyhow::Result<Vec<PostDisplay>> {
+    let posts = get_all_post_metadata(conn)?
+        .iter()
+        .map(|p| p.as_display())
+        .collect::<Vec<PostDisplay>>();
+
+    Ok(posts)
+}
+
+pub fn post_index_display(posts: &Vec<PostDisplay>) -> anyhow::Result<String> {
+    let mut hb = Handlebars::new();
+    let template_path = get_template_path("posts_list")?;
+
+    hb.register_template_file("posts_list", template_path)?;
+
+    let mut template_values = serde_json::Map::new();
+    let list_items_json = handlebars::to_json(posts);
+    template_values.insert(String::from("posts"), list_items_json);
+
+    let rendered_content = hb.render("posts_list", &template_values)?;
+    Ok(rendered_content)
+}
+
+pub fn make_posts_index() -> anyhow::Result<String> {
+    let conn = init_table_connection()?;
+    let posts = posts_index_from_db(&conn)?;
+    post_index_display(&posts)
+}
+
+pub enum Page {
+    HomePage,
+    PostPage(Post),
+    PostListPage(Vec<PostDisplay>),
+}
+
+impl Page {
+    pub fn title(&self) -> String {
+        match self {
+            Self::HomePage => "Home".into(),
+            Self::PostPage(p) => p.title.clone(),
+            Self::PostListPage(_) => "Index of posts".into(),
+        }
+    }
+
+    pub fn render_content(&self) -> anyhow::Result<String> {
+        match self {
+            Self::HomePage => {
+                let homepage_path = PathBuf::from(common::STATIC_PAGES_PATH)
+                    .join("home.html")
+                    .canonicalize()?;
+                md_file_to_html(homepage_path)
+            }
+
+            Self::PostPage(p) => md_file_to_html(&p.md_path()),
+
+            Self::PostListPage(ps) => post_index_display(ps),
+        }
+    }
+
+    pub fn render_into_base(&self) -> anyhow::Result<String> {
+        let base_template_path = get_template_path("base")?;
         let mut hb = Handlebars::new();
-        let template_path = get_template_path("posts_list")?;
+        hb.register_template_file("base", base_template_path)?;
 
-        hb.register_template_file("posts_list", template_path)?;
+        let page_title = self.title();
+        let page_body_content = self.render_content()?;
 
-        let mut template_values = serde_json::Map::new();
-        let list_items_json = handlebars::to_json(&self.0);
-        template_values.insert(String::from("posts"), list_items_json);
-
-        let rendered_content = hb.render("posts_list", &template_values)?;
+        let rendered_content = hb.render(
+            "base",
+            &serde_json::json!({"title" : page_title, "content": page_body_content}),
+        )?;
         Ok(rendered_content)
     }
 }
 
-pub struct PostPage(Post);
-
-impl RenderablePage for PostPage {
-    fn title(&self) -> String {
-        String::from(&self.0.title)
-    }
-
-    fn content(&self) -> anyhow::Result<String> {
-        todo!()
-    }
-}
-
-pub fn render_into_base<T: RenderablePage>(page: &T) -> anyhow::Result<String> {
+pub fn render_into_base(page: Page) -> anyhow::Result<String> {
     let base_template_path = get_template_path("base")?;
     let mut hb = Handlebars::new();
     hb.register_template_file("base", base_template_path)?;
 
     let page_title = page.title();
-    let page_body_content = page.content()?;
+    let page_body_content = page.render_content()?;
 
     let rendered_content = hb.render(
         "base",
         &serde_json::json!({"title" : page_title, "content": page_body_content}),
     )?;
     Ok(rendered_content)
-}
-
-pub fn make_posts_index() -> anyhow::Result<String> {
-    let conn = init_table_connection()?;
-    let index_page = IndexPage::from_db(&conn)?;
-
-    let raw = render_into_base(&index_page)?;
-
-    Ok(raw)
 }
 
 fn get_template_path(template_name: &str) -> anyhow::Result<PathBuf> {
@@ -253,7 +301,7 @@ pub fn parse_html(html_doc: &str) -> anyhow::Result<RcDom> {
         .map_err(anyhow::Error::from)
 }
 
-pub fn md_file_to_html(md_path: &PathBuf) -> anyhow::Result<String> {
+pub fn md_file_to_html(md_path: impl AsRef<Path>) -> anyhow::Result<String> {
     let file_content = read_to_string(md_path)?;
 
     to_html_with_options(&file_content, &markdown::Options::gfm()).map_err(|e| format_err!("{}", e))
@@ -268,7 +316,7 @@ pub fn process_sidenotes(document_input: &str) -> String {
         .build()
         .unwrap();
 
-    while re.find(&document).is_some() {
+    while re.is_match(&document) {
         let mn_id = format!("mn-{counter}");
         counter += 1;
 
@@ -280,26 +328,8 @@ pub fn process_sidenotes(document_input: &str) -> String {
             </span> "#
         );
 
-        let rep = re.replace(&document, replacement).to_string();
-
-        document = rep;
+        document = re.replace(&document, replacement).to_string();
     }
 
     document
-}
-
-pub fn walk(indent: usize, handle: &rcdom::Handle) {
-    let node = handle;
-
-    for _ in 0..indent {
-        print!(" ");
-    }
-
-    if let NodeData::Element { ref name, .. } = node.data {
-        println!("{:?} ", name,);
-    }
-
-    for child in node.children.borrow().iter() {
-        walk(indent + 4, child);
-    }
 }
