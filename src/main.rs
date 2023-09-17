@@ -2,6 +2,8 @@ use axum::{routing::get, Router, Server};
 
 pub mod blog;
 
+use blog::{db, render};
+
 pub mod common {
     use serde::{Deserialize, Serialize};
     use std::path::PathBuf;
@@ -35,6 +37,7 @@ pub mod common {
     pub static POSTS_MARKDOWN_PATH: &str = "./assets/posts/md";
     pub static TEMPLATES_PATH: &str = "./assets/templates";
     pub static STATIC_PAGES_PATH: &str = "./assets/static";
+    pub static HOMEPAGE_PATH: &str = "./assets/static/homepage.html";
 
     pub fn timestamp_date_format(timestamp: usize, format_str: &str) -> String {
         let naive =
@@ -47,28 +50,18 @@ pub mod common {
 }
 
 pub mod route {
-
     use crate::common;
+    use anyhow;
     use axum::{
-        extract::Path,
+        extract,
         http::StatusCode,
         response::{Html, IntoResponse},
     };
-    use std::{fs::File, io::Read};
 
-    use anyhow;
-    use anyhow::format_err;
-    use std::path::PathBuf;
+    use crate::blog::{db, render};
+    pub struct RoutingError(anyhow::Error);
 
-    pub struct RouteError(anyhow::Error);
-
-    impl IntoResponse for RouteError {
-        fn into_response(self) -> axum::response::Response {
-            (StatusCode::NOT_FOUND, format!("{:?}", self.0)).into_response()
-        }
-    }
-
-    impl<E> From<E> for RouteError
+    impl<E> From<E> for RoutingError
     where
         E: Into<anyhow::Error>,
     {
@@ -76,38 +69,38 @@ pub mod route {
             Self(err.into())
         }
     }
-
-    type PageResult = Result<Html<String>, RouteError>;
-
-    async fn get_static_file_for_slug(slug: &str) -> anyhow::Result<Html<String>> {
-        let post_filename = format!("{slug}.html");
-        let post_path = PathBuf::from(common::POSTS_FILES_PATH).join(post_filename);
-
-        let mut post_handle = match post_path.metadata() {
-            Err(e) => Err(anyhow::Error::from(e)),
-            Ok(m) if m.is_dir() => Err(format_err!("bad")),
-            Ok(_) => match File::open(post_path) {
-                Ok(f) => Ok(f),
-                Err(e) => Err(anyhow::Error::from(e)),
-            },
-        }?;
-
-        let mut buf: Vec<u8> = Vec::new();
-        post_handle.read_to_end(&mut buf)?;
-
-        Ok(Html::from(String::from_utf8(buf)?))
+    impl IntoResponse for RoutingError {
+        fn into_response(self) -> axum::response::Response {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Something went wrong: {}", self.0),
+            )
+                .into_response()
+        }
     }
 
-    pub async fn post(Path(_slug): Path<String>) -> Result<Html<String>, RouteError> {
-        todo!();
+    pub async fn posts_list() -> Result<Html<String>, RoutingError> {
+        let posts = db::DbConnection::new()?.all_posts()?;
+        let posts_list = render::post_index_display(&posts)?;
+        let content = render::render_html_str("Posts Index", &posts_list)?;
+        Ok(Html::from(content))
     }
 
-    pub async fn posts_list() -> PageResult {
-        todo!();
+    pub async fn home() -> Result<Html<String>, RoutingError> {
+        let content = render::read_file_contents(common::HOMEPAGE_PATH)
+            .and_then(|ref s| render::render_html_str("Home", s))
+            .map(|s| Html::from(s))?;
+
+        Ok(content)
     }
 
-    pub async fn home() -> PageResult {
-        todo!();
+    pub async fn post(
+        extract::Path(slug): extract::Path<String>,
+    ) -> Result<Html<String>, RoutingError> {
+        let post = db::DbConnection::new()?.get(&slug)?;
+        let content = render::render_md(&post.title, &post.md_path())?;
+
+        Ok(Html::from(content))
     }
 }
 

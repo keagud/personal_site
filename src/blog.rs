@@ -17,6 +17,44 @@ pub mod db {
     use std::path::Path;
     use std::path::PathBuf;
 
+    pub struct DbConnection {
+        pub conn: rusqlite::Connection,
+    }
+
+    impl DbConnection {
+        pub fn new() -> anyhow::Result<Self> {
+            Ok(DbConnection {
+                conn: init_table_connection()?,
+            })
+        }
+
+        pub fn add_post_data(&mut self, post: &Post) -> anyhow::Result<()> {
+            add_post_metadata_to_db(&self.conn, post)
+        }
+
+        pub fn all_posts(&self) -> anyhow::Result<Vec<Post>> {
+            get_all_post_metadata(&self.conn)
+        }
+
+        pub fn dump_json(&self, json_path: impl AsRef<Path>) -> anyhow::Result<()> {
+            dump_posts_json(&self.conn, json_path)
+        }
+
+        pub fn get(&self, slug: &str) -> anyhow::Result<Post> {
+            let stmt = format!("SELECT title, timestamp, slug FROM post WHERE slug='{slug}'");
+
+            self.conn
+                .query_row(&stmt, [], |row| {
+                    Ok(Post {
+                        title: row.get(0)?,
+                        timestamp: row.get(1)?,
+                        slug: row.get(2)?,
+                    })
+                })
+                .map_err(|e| anyhow::Error::from(e))
+        }
+    }
+
     pub fn add_post_metadata_to_db(conn: &rusqlite::Connection, post: &Post) -> anyhow::Result<()> {
         let post_files_path = PathBuf::from(common::POSTS_FILES_PATH).canonicalize()?;
         let post_filename = format!("{}.md", post.slug.to_lowercase());
@@ -24,23 +62,21 @@ pub mod db {
         let resolved_path = post_files_path.join(post_filename);
 
         if !resolved_path.try_exists()? {
-            return Err(format_err!("Invalid path: {:?}", resolved_path));
+            return Err(format_err!(
+                "Content not found at path: {:?}",
+                resolved_path
+            ));
         }
 
-        let path_str = resolved_path.to_str().ok_or(format_err!(
-            "Path cannot be resolved to UTF-8: {:?}",
-            resolved_path
-        ))?;
-
         conn.execute(
-            r#"INSERT INTO post (title, timestamp, slug, content_path) VALUES (?1, ?2, ?3, ?4)"#,
-            (&post.title, &post.timestamp, &post.slug, path_str),
+            r#"INSERT INTO post (title, timestamp, slug) VALUES (?1, ?2, ?3)"#,
+            (&post.title, &post.timestamp, &post.slug),
         )?;
 
         Ok(())
     }
 
-    pub fn init_table_connection() -> anyhow::Result<rusqlite::Connection> {
+    fn init_table_connection() -> anyhow::Result<rusqlite::Connection> {
         let conn = rusqlite::Connection::open(common::POSTS_DB_PATH)?;
 
         conn.execute(
@@ -58,7 +94,7 @@ pub mod db {
         Ok(conn)
     }
 
-    pub fn get_all_post_metadata(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Post>> {
+    fn get_all_post_metadata(conn: &rusqlite::Connection) -> anyhow::Result<Vec<Post>> {
         let mut stmt =
             conn.prepare("SELECT title, timestamp, slug FROM post ORDER BY timestamp DESC;")?;
 
@@ -124,21 +160,6 @@ pub mod db {
     }
 }
 
-fn get_template_path(template_name: &str) -> anyhow::Result<PathBuf> {
-    let p = PathBuf::from(common::TEMPLATES_PATH);
-    let template_filename = format!("{}.html", template_name);
-    let template_path = p.join(template_filename).canonicalize()?;
-
-    if template_path.try_exists()? {
-        Ok(template_path)
-    } else {
-        Err(format_err!(
-            "Template file not found or not accessable at {:?}",
-            template_path
-        ))
-    }
-}
-
 pub mod render {
     use crate::common;
     use crate::common::Post;
@@ -159,7 +180,7 @@ pub mod render {
         render_into_base(page_title, &process_sidenotes(page_content))
     }
 
-    fn read_file_contents(file_path: impl AsRef<Path>) -> anyhow::Result<String> {
+    pub fn read_file_contents(file_path: impl AsRef<Path>) -> anyhow::Result<String> {
         let file_path = PathBuf::from(file_path.as_ref());
 
         let mut file_handle = match file_path.metadata() {
