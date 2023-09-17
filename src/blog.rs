@@ -37,15 +37,6 @@ impl Post {
         common::timestamp_date_format(self.timestamp, "%F")
     }
 
-    pub fn as_display(&self) -> PostDisplay {
-        let date = self.date_str();
-        PostDisplay {
-            title: self.title.to_owned(),
-            slug: self.slug.to_owned(),
-            date,
-        }
-    }
-
     pub fn md_path(&self) -> PathBuf {
         PathBuf::from(common::POSTS_MARKDOWN_PATH).join(format!("{}.md", self.slug))
     }
@@ -53,13 +44,6 @@ impl Post {
     pub fn html_path(&self) -> PathBuf {
         PathBuf::from(common::POSTS_FILES_PATH).join(format!("{}.html", self.slug))
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PostDisplay {
-    pub title: String,
-    pub date: String,
-    pub slug: String,
 }
 
 pub fn add_post_metadata_to_db(conn: &rusqlite::Connection, post: &Post) -> anyhow::Result<()> {
@@ -168,16 +152,7 @@ pub fn load_posts_json(
     Ok(())
 }
 
-pub fn posts_index_from_db(conn: &Connection) -> anyhow::Result<Vec<PostDisplay>> {
-    let posts = get_all_post_metadata(conn)?
-        .iter()
-        .map(|p| p.as_display())
-        .collect::<Vec<PostDisplay>>();
-
-    Ok(posts)
-}
-
-pub fn post_index_display(posts: &Vec<PostDisplay>) -> anyhow::Result<String> {
+pub fn post_index_display(posts: &Vec<Post>) -> anyhow::Result<String> {
     let mut hb = Handlebars::new();
     let template_path = get_template_path("posts_list")?;
 
@@ -193,14 +168,14 @@ pub fn post_index_display(posts: &Vec<PostDisplay>) -> anyhow::Result<String> {
 
 pub fn make_posts_index() -> anyhow::Result<String> {
     let conn = init_table_connection()?;
-    let posts = posts_index_from_db(&conn)?;
+    let posts = get_all_post_metadata(&conn)?;
     post_index_display(&posts)
 }
 
 pub enum Page {
     HomePage,
     PostPage(Post),
-    PostListPage(Vec<PostDisplay>),
+    PostListPage(Vec<Post>),
 }
 
 impl Page {
@@ -243,17 +218,15 @@ impl Page {
     }
 }
 
-pub fn render_into_base(page: Page) -> anyhow::Result<String> {
+pub fn render_into_base(title: &str, content: &str) -> anyhow::Result<String> {
     let base_template_path = get_template_path("base")?;
     let mut hb = Handlebars::new();
     hb.register_template_file("base", base_template_path)?;
 
-    let page_title = page.title();
-    let page_body_content = page.render_content()?;
 
     let rendered_content = hb.render(
         "base",
-        &serde_json::json!({"title" : page_title, "content": page_body_content}),
+        &serde_json::json!({"title" : title, "content": content}),
     )?;
     Ok(rendered_content)
 }
