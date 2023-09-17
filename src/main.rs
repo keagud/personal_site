@@ -3,8 +3,31 @@ use axum::{routing::get, Router, Server};
 pub mod blog;
 
 pub mod common {
+    use serde::{Deserialize, Serialize};
+    use std::path::PathBuf;
 
     use chrono::{DateTime, NaiveDateTime, Utc};
+
+    #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+    pub struct Post {
+        pub title: String,
+        pub timestamp: usize,
+        pub slug: String,
+    }
+
+    impl Post {
+        pub fn date_str(&self) -> String {
+            timestamp_date_format(self.timestamp, "%F")
+        }
+
+        pub fn md_path(&self) -> PathBuf {
+            PathBuf::from(POSTS_MARKDOWN_PATH).join(format!("{}.md", self.slug))
+        }
+
+        pub fn html_path(&self) -> PathBuf {
+            PathBuf::from(POSTS_FILES_PATH).join(format!("{}.html", self.slug))
+        }
+    }
 
     //relative to crate root
     pub static POSTS_DB_PATH: &str = "./assets/posts.db";
@@ -33,7 +56,6 @@ pub mod route {
     };
     use std::{fs::File, io::Read};
 
-    use crate::blog;
     use anyhow;
     use anyhow::format_err;
     use std::path::PathBuf;
@@ -76,19 +98,16 @@ pub mod route {
         Ok(Html::from(String::from_utf8(buf)?))
     }
 
-    pub async fn post(Path(slug): Path<String>) -> Result<Html<String>, RouteError> {
-        Ok(get_static_file_for_slug(&slug).await?)
+    pub async fn post(Path(_slug): Path<String>) -> Result<Html<String>, RouteError> {
+        todo!();
     }
 
     pub async fn posts_list() -> PageResult {
-        match blog::make_posts_index() {
-            Ok(s) => Ok(Html(s)),
-            Err(e) => Err(RouteError::from(e)),
-        }
+        todo!();
     }
 
     pub async fn home() -> PageResult {
-        Ok(Html("<h1>This is the homepage!</h1>".into()))
+        todo!();
     }
 }
 
