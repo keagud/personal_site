@@ -168,9 +168,57 @@ pub mod render {
     use handlebars::Handlebars;
     use markdown;
     use markdown::to_html_with_options;
+    use serde::{Deserialize, Serialize};
     use std::fs::File;
     use std::io::Read;
     use std::path::{Path, PathBuf};
+
+    #[derive(Deserialize, Serialize)]
+    struct RenderParams {
+        pub title: String,
+        pub home_url: String,
+        pub content: String,
+        pub favicon_path: String,
+        pub quotes_list_json: String,
+        pub css: String,
+    }
+
+    pub const FAVICON_URL: &str = "/static/favicon.io";
+    pub const CSS_PATH: &str = "/assets/style.css";
+    pub const QUOTES_PATH: &str = "/assets/quotes.json";
+
+    //read from assets/quotes.json, produce a JSON list
+    fn load_quotes() -> String {
+        todo!()
+    }
+
+    //load css as a string
+    fn load_css() -> String {
+        todo!()
+    }
+
+    impl Default for RenderParams {
+        fn default() -> Self {
+            RenderParams {
+                title: "Welcome to my web site!".into(),
+                home_url: "/".into(),
+                content: String::new(),
+                favicon_path: FAVICON_URL.into(),
+                quotes_list_json: load_quotes(),
+                css: load_css(),
+            }
+        }
+    }
+
+    impl RenderParams {
+        pub fn new(title: &str, content: &str) -> Self {
+            Self {
+                title: String::from(title),
+                content: String::from(content),
+                ..Self::default()
+            }
+        }
+    }
 
     pub fn render_md(page_title: &str, md_file: impl AsRef<Path>) -> anyhow::Result<String> {
         md_file_to_html(md_file).and_then(|ref s| render_html_str(page_title, s))
@@ -200,13 +248,13 @@ pub mod render {
 
     pub fn render_into_base(title: &str, content: &str) -> anyhow::Result<String> {
         let base_template_path = get_template_path("base")?;
+
+        let render_params = RenderParams::new(title, content);
+
         let mut hb = Handlebars::new();
         hb.register_template_file("base", base_template_path)?;
 
-        let rendered_content = hb.render(
-            "base",
-            &serde_json::json!({"title" : title, "content": content}),
-        )?;
+        let rendered_content = hb.render("base", &serde_json::to_value(render_params)?)?;
         Ok(rendered_content)
     }
 
