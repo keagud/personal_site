@@ -1,9 +1,3 @@
-use anyhow::{self, format_err};
-
-use std::path::PathBuf;
-
-use crate::common;
-
 pub mod db {
 
     use crate::common;
@@ -60,7 +54,7 @@ pub mod db {
                         slug: row.get(2)?,
                     })
                 })
-                .map_err(|e| anyhow::Error::from(e))
+                .map_err(anyhow::Error::from)
         }
     }
 
@@ -180,7 +174,7 @@ pub mod render {
     use markdown;
     use markdown::to_html_with_options;
     use serde::{Deserialize, Serialize};
-    use std::fs::{self, read_to_string, File};
+    use std::fs::{read_to_string, File};
     use std::io::Read;
     use std::path::{Path, PathBuf};
 

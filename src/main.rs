@@ -1,10 +1,6 @@
 use axum::{routing::get, Router, Server};
-use tracing::{error, instrument};
-use tracing_error::ErrorLayer;
 
 pub mod blog;
-
-use blog::{db, render};
 
 pub mod common {
     use serde::{Deserialize, Serialize};
@@ -96,7 +92,7 @@ pub mod route {
     pub async fn home() -> Result<Html<String>, RoutingError> {
         let content = render::read_file_contents(common::HOMEPAGE_PATH)
             .and_then(|ref s| render::render_html_str("Home", s))
-            .map(|s| Html::from(s))?;
+            .map(Html::from)?;
 
         Ok(content)
     }
@@ -105,7 +101,7 @@ pub mod route {
         extract::Path(slug): extract::Path<String>,
     ) -> Result<Html<String>, RoutingError> {
         let post = db::DbConnection::new()?.get(&slug)?;
-        let content = render::render_md(&post.title, &post.md_path())?;
+        let content = render::render_md(&post.title, post.md_path())?;
 
         Ok(Html::from(content))
     }
