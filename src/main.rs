@@ -4,9 +4,11 @@ pub mod blog;
 
 pub mod common {
     use serde::{Deserialize, Serialize};
+    use sha3::{Digest, Sha3_512};
     use std::path::PathBuf;
 
     use chrono::{DateTime, NaiveDateTime, Utc};
+    use dotenv_codegen::dotenv;
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Post {
@@ -38,6 +40,23 @@ pub mod common {
     pub static STATIC_PAGES_PATH: &str = "./assets/static";
     pub static HOMEPAGE_PATH: &str = "./assets/static/homepage.html";
 
+    pub fn validate_token(token: impl AsRef<[u8]>) -> bool {
+        const SECRET: &str = dotenv!("SECRET");
+
+        /*
+        let cleaned_bytes = match String::from_utf8(SECRET.into()) {
+            Ok(ref s) => s.trim().as_bytes().to_owned(),
+            _ => return false,
+        };
+        */
+
+        let mut hasher = Sha3_512::new();
+        hasher.update(SECRET);
+        let result = hasher.finalize().into_iter().collect::<Vec<u8>>();
+
+        result.as_slice() == token.as_ref()
+    }
+
     pub fn timestamp_date_format(timestamp: usize, format_str: &str) -> String {
         let naive =
             NaiveDateTime::from_timestamp_opt(timestamp as i64, 0).expect("Timestamp is valid");
@@ -45,6 +64,29 @@ pub mod common {
         let dt: DateTime<Utc> = naive.and_local_timezone(Utc).unwrap();
 
         dt.format(format_str).to_string()
+    }
+
+
+    #[cfg(test)]
+    pub mod test{
+
+        use crate::common::*;
+        use dotenv_codegen::dotenv;
+
+
+        #[test]
+        fn test_validator(){
+
+            const KEY: &str = dotenv!("KEY");
+
+            assert!(validate_token(KEY));
+
+
+
+
+        }
+
+
     }
 }
 
