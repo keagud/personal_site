@@ -1,18 +1,53 @@
+{{!--
+<!--
+  title: page title 
+  favicon_path: path for favicon image
+  home_url: url for the home page
+  content: html for the page content (inserted as raw html)
+  quotes_list_json: json style list of quotes for the header
+  css: what should go in the <style> element
+-->
+--}}
 <!DOCTYPE html>
-{{! <!-- expects two params: title for the page title, and content -->}}
-{{! <!--  content is the raw html that is to go inside the <body></body> -->}}
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-    <title>{{title}}</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="description" content="" />
-  <link rel="icon" href="favicon.png">
 
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  <link rel="icon" type="image/x-icon" href="{{ favicon_path }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
-    {{{content}}}
+  <header id="page-header">
+    <h1><a href="{{ home_url }}">implicit.computer</a></h1>
+
+    <div id="quote-box">
+      <p><em id="quote"></em></p>
+    </div>
+  </header>
+  <br>
+
+
+  <section id="page-content">
+    {{{ content }}}
+  </section>
+
+
+  <script>
+    const quotesList = {{quotes_list_json}}
+    const quoteElement = document.querySelector("#quote");
+
+    quoteElement.textContent = (() => {
+      let index = Math.floor(Math.random() * (quotesList.length));
+      return quotesList[index];
+    })();
+
+  </script>
+
+  <style>
+    {{{ css }}}
+  </style>
 
 </body>
 
