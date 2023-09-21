@@ -4,7 +4,7 @@
   favicon_path: path for favicon image
   home_url: url for the home page
   content: html for the page content (inserted as raw html)
-  quotes_list_json: json style list of quotes for the header
+  quotes_list_json: json style list of quotes for the header, with "quotes" as key
   css: what should go in the <style> element
 -->
 --}}
@@ -16,6 +16,13 @@
   <title>{{ title }}</title>
   <link rel="icon" type="image/x-icon" href="{{ favicon_path }}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <style>
+    {{{ css }}}
+  </style>
+
+
 </head>
 
 <body>
@@ -35,7 +42,8 @@
 
 
   <script>
-    const quotesList = {{quotes_list_json}}
+    const quotesJson = {{quotes_list_json}};
+    const quotesList = quotesJson["quotes"];
     const quoteElement = document.querySelector("#quote");
 
     quoteElement.textContent = (() => {
@@ -44,10 +52,6 @@
     })();
 
   </script>
-
-  <style>
-    {{{ css }}}
-  </style>
 
 </body>
 
