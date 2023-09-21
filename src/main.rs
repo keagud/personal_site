@@ -1,4 +1,6 @@
 use axum::{routing::get, Router, Server};
+use tracing::{error, instrument};
+use tracing_error::ErrorLayer;
 
 pub mod blog;
 
@@ -33,6 +35,7 @@ pub mod common {
 
     //relative to crate root
     pub static POSTS_DB_PATH: &str = "./assets/posts.db";
+    pub static POSTS_JSON_PATH: &str = "./assets/posts.json";
     pub static POSTS_FILES_PATH: &str = "./assets/posts/html";
     pub static POSTS_MARKDOWN_PATH: &str = "./assets/posts/md";
     pub static TEMPLATES_PATH: &str = "./assets/templates";
@@ -71,9 +74,13 @@ pub mod route {
     }
     impl IntoResponse for RoutingError {
         fn into_response(self) -> axum::response::Response {
+            if cfg!(debug_assertions) {
+                tracing::debug!("{}", self.0.backtrace());
+            }
+
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Something went wrong: {}", self.0),
+                format!("Something went wrong: {:?}", self.0),
             )
                 .into_response()
         }
@@ -124,9 +131,13 @@ async fn main() -> anyhow::Result<()> {
 
     let addr = format!("{host}:{port}");
     tracing::debug!("Listening on {}", &addr);
-    Server::bind(&addr.parse()?)
+    let res = Server::bind(&addr.parse()?)
         .serve(app.into_make_service())
-        .await?;
+        .await;
+
+    if let Some(e) = res.err() {
+        eprintln!("ERROR: {:?}", e);
+    }
 
     Ok(())
 }

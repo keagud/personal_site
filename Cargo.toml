@@ -11,7 +11,7 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["macros", "full"] }
 chrono = "0.4.28"
 rusqlite = "0.29.0"
-anyhow = "1.0.75"
+anyhow = { version = "1.0.75", features = ["backtrace"]}
 handlebars = "4.4.0"
 serde_json = "1.0.106"
 axum = "0.6.20"
@@ -19,9 +19,10 @@ async-std = { version = "1", features = ["attributes", "tokio1"] }
 tower = "0.4.13"
 tower-http = { version = "0.4.4", features = ["full"]}
 tracing-subscriber = "0.3.17"
-tracing = "0.1.37"
+tracing = "0.1"
 markup5ever_rcdom = "0.2.0"
 scraper = "0.17.1"
 markdown = "1.0.0-alpha.13"
 html5ever = "0.26.0"
 regex = "1.9.5"
+tracing-error = "0.2.0"

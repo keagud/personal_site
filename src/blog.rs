@@ -21,6 +21,15 @@ pub mod db {
         pub conn: rusqlite::Connection,
     }
 
+    impl Drop for DbConnection {
+        fn drop(&mut self) {
+            match self.dump_json(common::POSTS_JSON_PATH) {
+                Ok(_) => (),
+                Err(e) => panic!("Cannot dump db content to json: {:?}", e),
+            }
+        }
+    }
+
     impl DbConnection {
         pub fn new() -> anyhow::Result<Self> {
             Ok(DbConnection {
@@ -91,6 +100,8 @@ pub mod db {
             (),
         )?;
 
+        load_posts_json(&conn, common::POSTS_JSON_PATH)?;
+
         Ok(conn)
     }
 
@@ -151,7 +162,7 @@ pub mod db {
 
         for ref post in posts {
             conn.execute(
-                r#"INSERT OR IGNORE INTO post (title, timestamp, slug) VALUES (?1, ?2, ?3, )"#,
+                r#"INSERT OR REPLACE INTO post (title, timestamp, slug) VALUES (?1, ?2, ?3);"#,
                 (&post.title, &post.timestamp, &post.slug),
             )?;
         }
@@ -169,7 +180,7 @@ pub mod render {
     use markdown;
     use markdown::to_html_with_options;
     use serde::{Deserialize, Serialize};
-    use std::fs::File;
+    use std::fs::{self, read_to_string, File};
     use std::io::Read;
     use std::path::{Path, PathBuf};
 
@@ -184,17 +195,17 @@ pub mod render {
     }
 
     pub const FAVICON_URL: &str = "/static/favicon.io";
-    pub const CSS_PATH: &str = "/assets/style.css";
-    pub const QUOTES_PATH: &str = "/assets/quotes.json";
+    pub const CSS_PATH: &str = "assets/style.css";
+    pub const QUOTES_PATH: &str = "assets/quotes.json";
 
-    //read from assets/quotes.json, produce a JSON list
+    //read from assets/quotes.json
     fn load_quotes() -> String {
-        todo!()
+        read_to_string(QUOTES_PATH).expect("Hardcoded json path should work")
     }
 
     //load css as a string
     fn load_css() -> String {
-        todo!()
+        read_to_string(CSS_PATH).expect("Hardcoded CSS path should work")
     }
 
     impl Default for RenderParams {
@@ -318,6 +329,7 @@ pub mod render {
         template_values.insert(String::from("posts"), list_items_json);
 
         let rendered_content = hb.render("posts_list", &template_values)?;
-        Ok(rendered_content)
+
+        Ok(dbg!(rendered_content))
     }
 }
