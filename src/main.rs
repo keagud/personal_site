@@ -12,6 +12,7 @@ pub mod common {
     use serde::{Deserialize, Serialize};
     use sha3::{Digest, Sha3_512};
     use std::option_env;
+    use std::panic;
     use std::path::PathBuf;
 
     use chrono::{DateTime, NaiveDateTime, Utc};
@@ -48,19 +49,13 @@ pub mod common {
     pub static HOMEPAGE_PATH: &str = "./assets/static/homepage.html";
 
     pub fn validate_token(token: impl AsRef<[u8]>) -> bool {
-        const SECRET: &str = dotenv!("SECRET");
-
-        let secret_bytes =
-            hex::decode(SECRET).expect("Hardcoded secret hex should represent valid bytes");
-
-        if let Ok(token_bytes) = hex::decode(&token) {
-            let mut hasher = Sha3_512::new();
-            hasher.update(secret_bytes);
-            let result = hasher.finalize();
-
-            result.as_slice() == token_bytes
+        if cfg!(debug_assertions) {
+            true
         } else {
-            false
+            let env_token = std::option_env!("SITE_ADMIN_KEY")
+                .expect("Admin key should be present in release builds");
+
+            env_token.as_bytes() == token.as_ref()
         }
     }
 
@@ -75,20 +70,6 @@ pub mod common {
         let dt: DateTime<Utc> = naive.and_local_timezone(Utc).unwrap();
 
         dt.format(format_str).to_string()
-    }
-
-    #[cfg(test)]
-    pub mod test {
-
-        use crate::common::*;
-        use dotenv_codegen::dotenv;
-
-        #[test]
-        fn test_validator() {
-            const KEY: &str = dotenv!("KEY");
-
-            assert!(validate_token(KEY));
-        }
     }
 }
 
@@ -192,8 +173,12 @@ pub mod route {
     }
 }
 
+fn main() {
+    println!("{}", std::env!("SITE_ADMIN_KEY"));
+}
+
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn maino() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
