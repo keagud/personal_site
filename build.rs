@@ -1,15 +1,12 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
-use std::io;
-use std::option_env;
-use std::path;
 
 fn load_key_from_file() -> Result<String, Box<dyn Error>> {
     let env_contents = fs::read_to_string("./.env")?;
     let key_value = String::from(&env_contents)
         .lines()
-        .filter_map(|l| l.split_once("="))
+        .filter_map(|l| l.split_once('='))
         .collect::<HashMap<&str, &str>>()
         .get("SITE_ADMIN_KEY")
         .ok_or("Not found")?

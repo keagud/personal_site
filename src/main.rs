@@ -1,22 +1,17 @@
-use axum::{
-    headers::authorization::Bearer,
-    routing::{get, post},
-    Json, Router, Server, TypedHeader,
-};
+use axum::{routing::get, Router, Server};
 
 pub mod blog;
 
 pub mod common {
-    use hex;
-    use html5ever::tokenizer::Token::DoctypeToken;
+    use base64::engine::general_purpose;
+
+    use base64::Engine;
+
     use serde::{Deserialize, Serialize};
-    use sha3::{Digest, Sha3_512};
-    use std::option_env;
-    use std::panic;
+
     use std::path::PathBuf;
 
     use chrono::{DateTime, NaiveDateTime, Utc};
-    use dotenv_codegen::dotenv;
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Post {
@@ -59,8 +54,10 @@ pub mod common {
         }
     }
 
-    pub fn decode_base64(encoded: impl AsRef<[u8]>) -> anyhow::Result<String> {
-        todo!()
+    pub fn decode_base64(encoded: &impl AsRef<[u8]>) -> anyhow::Result<String> {
+        let decoded_bytes = general_purpose::STANDARD_NO_PAD.decode(encoded)?;
+        let decoded_string = String::from_utf8(decoded_bytes)?;
+        Ok(decoded_string)
     }
 
     pub fn timestamp_date_format(timestamp: usize, format_str: &str) -> String {
@@ -78,10 +75,9 @@ pub mod route {
     use anyhow;
     use anyhow::format_err;
     use axum::{
-        body::{Body, HttpBody},
-        extract::{self, Json, Multipart},
+        extract::{self, Json},
         headers::authorization::Bearer,
-        http::{Request, StatusCode},
+        http::StatusCode,
         response::{Html, IntoResponse},
         TypedHeader,
     };
@@ -173,12 +169,8 @@ pub mod route {
     }
 }
 
-fn main() {
-    println!("{}", std::env!("SITE_ADMIN_KEY"));
-}
-
 #[tokio::main]
-async fn maino() -> anyhow::Result<()> {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
         .init();
