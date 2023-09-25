@@ -1,5 +1,9 @@
-use axum::{routing::get, Router, Server};
+use axum::{
+    routing::{get, post},
+    Router, Server,
+};
 
+use axum_macros::debug_handler;
 use bzip2::read::BzDecoder;
 pub mod blog;
 
@@ -83,6 +87,8 @@ pub mod route {
         response::{Html, IntoResponse},
         TypedHeader,
     };
+    use axum_auth::AuthBearer;
+    use axum_macros::debug_handler;
     use std::{io::Read, io::Write, path::PathBuf};
 
     use bzip2::read::BzDecoder;
@@ -112,7 +118,9 @@ pub mod route {
         }
 
         pub fn save(&self) -> anyhow::Result<()> {
-            let mut decoder = BzDecoder::new(self.file_content_compressed.as_bytes());
+            let upload_bytes = hex::decode(&self.file_content_compressed)?;
+
+            let mut decoder = BzDecoder::new(upload_bytes.as_slice());
             let mut str_buf = String::new();
             decoder.read_to_string(&mut str_buf)?;
 
@@ -128,6 +136,9 @@ pub mod route {
 
             fs::File::create(save_path)?.write_all(str_buf.as_bytes())?;
 
+            let conn = db::DbConnection::new()?;
+
+            conn.
             db::DbConnection::new()?.add_post_data(&self.metadata())?;
 
             Ok(())
@@ -218,10 +229,10 @@ pub mod route {
     }
 
     pub async fn add_new_post(
-        TypedHeader(bearer_auth): TypedHeader<Bearer>,
+        AuthBearer(token): AuthBearer,
         Json(payload): Json<PostUpload>,
     ) -> Result<StatusCode, SiteError> {
-        if !common::validate_token(bearer_auth.token()) {
+        if !common::validate_token(token) {
             Err(SiteError::from_status(StatusCode::FORBIDDEN))
         } else {
             payload.save().map(|_| StatusCode::OK).map_err(|e| e.into())
@@ -243,6 +254,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/blog/", get(route::posts_list))
         .route("/about", get(route::about))
         .route("/about/", get(route::about))
+        .route("/admin/add", post(route::add_new_post))
+        //.route("/admin/posts", get(route::admin_posts_list))
         .route("/blog/:slug", get(route::get_post))
         .route("/blog/:slug/", get(route::get_post));
 
