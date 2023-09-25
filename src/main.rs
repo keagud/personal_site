@@ -1,5 +1,6 @@
 use axum::{routing::get, Router, Server};
 
+use bzip2::read::BzDecoder;
 pub mod blog;
 
 pub mod common {
@@ -13,7 +14,7 @@ pub mod common {
 
     use chrono::{DateTime, NaiveDateTime, Utc};
 
-    #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+    #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
     pub struct Post {
         pub title: String,
         pub timestamp: usize,
@@ -40,6 +41,7 @@ pub mod common {
     pub static POSTS_FILES_PATH: &str = "./assets/posts/html";
     pub static POSTS_MARKDOWN_PATH: &str = "./assets/posts/md";
     pub static TEMPLATES_PATH: &str = "./assets/templates";
+
     pub static STATIC_PAGES_PATH: &str = "./assets/static";
     pub static HOMEPAGE_PATH: &str = "./assets/static/homepage.html";
 
@@ -71,7 +73,7 @@ pub mod common {
 }
 
 pub mod route {
-    use crate::common::{self, Post};
+    use crate::common::{self, Post, POSTS_MARKDOWN_PATH};
     use anyhow;
     use anyhow::format_err;
     use axum::{
@@ -81,10 +83,14 @@ pub mod route {
         response::{Html, IntoResponse},
         TypedHeader,
     };
+    use std::{io::Read, io::Write, path::PathBuf};
 
+    use bzip2::read::BzDecoder;
     use serde::{Deserialize, Serialize};
 
     use crate::blog::{db, render};
+    use std::fs;
+    use std::path::Path;
     pub struct SiteError(anyhow::Error, Option<StatusCode>);
 
     #[derive(Serialize, Deserialize, Default)]
@@ -92,15 +98,62 @@ pub mod route {
         pub title: String,
         pub timestamp: usize,
         pub slug: String,
-        pub file_content_base64: String,
+        pub file_content_compressed: String,
+        pub overwrite: bool,
     }
 
     impl PostUpload {
-        pub fn save(&self) -> anyhow::Result<Post> {
-            // decode file content from base 64, save it
-            // to the correct path to a file named slug.md.
-            // Return a Post on success.
-            todo!()
+        pub fn metadata(&self) -> Post {
+            Post {
+                title: self.title.to_owned(),
+                slug: self.slug.to_owned(),
+                timestamp: self.timestamp,
+            }
+        }
+
+        pub fn save(&self) -> anyhow::Result<()> {
+            let mut decoder = BzDecoder::new(self.file_content_compressed.as_bytes());
+            let mut str_buf = String::new();
+            decoder.read_to_string(&mut str_buf)?;
+
+            let filename = format!("{}.md", self.slug);
+
+            let save_path = PathBuf::from(POSTS_MARKDOWN_PATH).join(&filename);
+
+            match save_path.try_exists() {
+                Err(e) => Err(e.into()),
+                Ok(true) if !self.overwrite => Err(format_err!("'{filename}' already exists")),
+                _ => Ok(()),
+            }?;
+
+            fs::File::create(save_path)?.write_all(str_buf.as_bytes())?;
+
+            db::DbConnection::new()?.add_post_data(&self.metadata())?;
+
+            Ok(())
+        }
+    }
+
+    pub enum StaticPage {
+        Home,
+        About,
+    }
+
+    impl StaticPage {
+        pub fn title(&self) -> String {
+            match *self {
+                Self::Home => "Home",
+                Self::About => "About",
+            }
+            .to_owned()
+        }
+        pub fn page_path(&self) -> PathBuf {
+            let p = match *self {
+                Self::Home => "homepage.html",
+                Self::About => "about.html",
+            };
+
+            PathBuf::from(common::STATIC_PAGES_PATH).join(p)
         }
     }
 
@@ -139,12 +192,20 @@ pub mod route {
         Ok(Html::from(content))
     }
 
-    pub async fn home() -> Result<Html<String>, SiteError> {
-        let content = render::read_file_contents(common::HOMEPAGE_PATH)
-            .and_then(|ref s| render::render_html_str("Home", s))
+    async fn static_route(page: StaticPage) -> Result<Html<String>, SiteError> {
+        let content = render::read_file_contents(page.page_path())
+            .and_then(|ref s| render::render_html_str(&page.title(), s))
             .map(Html::from)?;
 
         Ok(content)
+    }
+
+    pub async fn about() -> Result<Html<String>, SiteError> {
+        static_route(StaticPage::About).await
+    }
+
+    pub async fn home() -> Result<Html<String>, SiteError> {
+        static_route(StaticPage::Home).await
     }
 
     pub async fn get_post(
@@ -163,7 +224,6 @@ pub mod route {
         if !common::validate_token(bearer_auth.token()) {
             Err(SiteError::from_status(StatusCode::FORBIDDEN))
         } else {
-            // TODO save to database here
             payload.save().map(|_| StatusCode::OK).map_err(|e| e.into())
         }
     }
@@ -181,6 +241,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/", get(route::home))
         .route("/blog", get(route::posts_list))
         .route("/blog/", get(route::posts_list))
+        .route("/about", get(route::about))
+        .route("/about/", get(route::about))
         .route("/blog/:slug", get(route::get_post))
         .route("/blog/:slug/", get(route::get_post));
 
