@@ -189,13 +189,22 @@ pub mod route {
     pub async fn posts_list() -> Result<Html<String>, SiteError> {
         let posts = db::DbConnection::new()?.all_posts()?;
         let posts_list = render::post_index_display(&posts)?;
-        let content = render::render_html_str("Posts Index", &posts_list)?;
+
+        let content = render::RenderBuilder::new("Posts Index")
+            .html_content(&posts_list)
+            .into_base_template()
+            .render()?;
         Ok(Html::from(content))
     }
 
     async fn static_route(page: StaticPage) -> Result<Html<String>, SiteError> {
         let content = render::read_file_contents(page.page_path)
-            .and_then(|ref s| render::render_html_str(&page.title, s))
+            .and_then(|ref s| {
+                render::RenderBuilder::new(&page.title)
+                    .html_content(s)
+                    .into_base_template()
+                    .render()
+            })
             .map(Html::from)?;
 
         Ok(content)
@@ -213,7 +222,7 @@ pub mod route {
         extract::Path(slug): extract::Path<String>,
     ) -> Result<Html<String>, SiteError> {
         let post = db::DbConnection::new()?.get(&slug)?;
-        let content = render::render_md(&post.title, post.md_path())?;
+        let content = render::render_md_template(&post.title, post.md_path())?;
 
         Ok(Html::from(content))
     }

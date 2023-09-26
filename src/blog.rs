@@ -225,11 +225,101 @@ pub mod render {
         }
     }
 
-    pub fn render_md(page_title: &str, md_file: impl AsRef<Path>) -> anyhow::Result<String> {
-        md_file_to_html(md_file).and_then(|ref s| render_html_str(page_title, s))
+    #[derive(Default)]
+    pub struct RenderBuilder {
+        title: String,
+        md_content: Option<String>,
+        md_file: Option<PathBuf>,
+        html_content: Option<String>,
+        sidenotes: bool,
+        into_base_template: bool,
     }
 
-    pub fn render_html_str(page_title: &str, page_content: &str) -> anyhow::Result<String> {
+    impl RenderBuilder {
+        pub fn new(title: &str) -> Self {
+            RenderBuilder {
+                title: title.into(),
+                ..Self::default()
+            }
+        }
+        pub fn render(&self) -> anyhow::Result<String> {
+            //if html was given directly, use that,
+            //Otherwise get the string markdown content to render
+            let mut html_str = if let Some(ref html_content) = self.html_content {
+                if self.md_content.is_some() || self.md_file.is_some() {
+                    Err(format_err!("Ambiguous"))
+                } else {
+                    Ok(html_content.clone())
+                }
+            } else {
+                let md_content = match (&self.md_content, &self.md_file) {
+                    (Some(_), Some(_)) => Err(format_err!("Ambiguous ")),
+                    (None, None) => Err(format_err!("No source")),
+                    (Some(s), None) => Ok(s.clone()),
+                    (None, Some(f)) => read_to_string(f).map_err(|e| e.into()),
+                }?;
+
+                //render it to html
+                to_html_with_options(&md_content, &markdown::Options::gfm())
+                    .map_err(|e| format_err!("{}", e))
+            }?;
+
+            //if applicable, do postprocessing
+
+            if self.sidenotes {
+                html_str = process_sidenotes(&html_str);
+            }
+
+            if self.into_base_template {
+                let mut hb = Handlebars::new();
+                let base_template_path = get_template_path("base")?;
+                hb.register_template_file("base", base_template_path)?;
+
+                let render_params = RenderParams::new(&self.title, &html_str);
+
+                html_str = hb.render("base", &serde_json::to_value(render_params)?)?;
+            }
+
+            Ok(html_str)
+        }
+
+        pub fn html_content<'a>(&'a mut self, html_content: &str) -> &'a mut Self {
+            self.html_content = Some(html_content.into());
+            self
+        }
+
+        pub fn md_content<'a>(&'a mut self, content: &str) -> &'a mut Self {
+            self.md_content = Some(content.into());
+            self
+        }
+
+        pub fn md_file(&mut self, filepath: impl AsRef<Path>) -> &mut Self {
+            self.md_file = Some(PathBuf::from(filepath.as_ref()));
+            self
+        }
+
+        pub fn sidenotes(&mut self) -> &mut Self {
+            self.sidenotes = true;
+            self
+        }
+
+        pub fn into_base_template(&mut self) -> &mut Self {
+            self.into_base_template = true;
+            self
+        }
+    }
+
+    pub fn render_md_template(
+        page_title: &str,
+        md_file: impl AsRef<Path>,
+    ) -> anyhow::Result<String> {
+        md_file_to_html(md_file).and_then(|ref s| render_html_str_template(page_title, s))
+    }
+
+    pub fn render_html_str_template(
+        page_title: &str,
+        page_content: &str,
+    ) -> anyhow::Result<String> {
         render_into_base(page_title, &process_sidenotes(page_content))
     }
 
@@ -261,6 +351,12 @@ pub mod render {
 
         let rendered_content = hb.render("base", &serde_json::to_value(render_params)?)?;
         Ok(rendered_content)
+    }
+
+    pub fn full_render_md_str(md_str: &str) -> anyhow::Result<String> {
+        to_html_with_options(md_str, &markdown::Options::gfm())
+            .map_err(|e| format_err!("{}", e))
+            .map(|s| process_sidenotes(&s))
     }
 
     fn md_file_to_html(md_path: impl AsRef<Path>) -> anyhow::Result<String> {
