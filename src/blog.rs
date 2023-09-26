@@ -309,20 +309,6 @@ pub mod render {
         }
     }
 
-    pub fn render_md_template(
-        page_title: &str,
-        md_file: impl AsRef<Path>,
-    ) -> anyhow::Result<String> {
-        md_file_to_html(md_file).and_then(|ref s| render_html_str_template(page_title, s))
-    }
-
-    pub fn render_html_str_template(
-        page_title: &str,
-        page_content: &str,
-    ) -> anyhow::Result<String> {
-        render_into_base(page_title, &process_sidenotes(page_content))
-    }
-
     pub fn read_file_contents(file_path: impl AsRef<Path>) -> anyhow::Result<String> {
         let file_path = PathBuf::from(file_path.as_ref());
 
@@ -340,32 +326,6 @@ pub mod render {
 
         Ok(String::from_utf8(buf)?)
     }
-
-    pub fn render_into_base(title: &str, content: &str) -> anyhow::Result<String> {
-        let base_template_path = get_template_path("base")?;
-
-        let render_params = RenderParams::new(title, content);
-
-        let mut hb = Handlebars::new();
-        hb.register_template_file("base", base_template_path)?;
-
-        let rendered_content = hb.render("base", &serde_json::to_value(render_params)?)?;
-        Ok(rendered_content)
-    }
-
-    pub fn full_render_md_str(md_str: &str) -> anyhow::Result<String> {
-        to_html_with_options(md_str, &markdown::Options::gfm())
-            .map_err(|e| format_err!("{}", e))
-            .map(|s| process_sidenotes(&s))
-    }
-
-    fn md_file_to_html(md_path: impl AsRef<Path>) -> anyhow::Result<String> {
-        let file_content = read_file_contents(md_path)?;
-
-        to_html_with_options(&file_content, &markdown::Options::gfm())
-            .map_err(|e| format_err!("{}", e))
-    }
-
     pub fn process_sidenotes(document_input: &str) -> String {
         let mut document = String::from(document_input);
         let pattern_str = r"\(:sidenote(?<text>.*?)sidenote:\)".to_string();

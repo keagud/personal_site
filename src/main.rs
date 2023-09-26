@@ -222,9 +222,12 @@ pub mod route {
         extract::Path(slug): extract::Path<String>,
     ) -> Result<Html<String>, SiteError> {
         let post = db::DbConnection::new()?.get(&slug)?;
-        let content = render::render_md_template(&post.title, post.md_path())?;
 
-        Ok(Html::from(content))
+        render::RenderBuilder::new(&post.title)
+            .md_file(post.md_path())
+            .render()
+            .map(Html::from)
+            .map_err(|e| e.into())
     }
 
     pub async fn add_new_post(
