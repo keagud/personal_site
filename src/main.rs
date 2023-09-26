@@ -3,8 +3,8 @@ use axum::{
     Router, Server,
 };
 
-use axum_macros::debug_handler;
-use bzip2::read::BzDecoder;
+
+
 pub mod blog;
 
 pub mod common {
@@ -82,13 +82,11 @@ pub mod route {
     use anyhow::format_err;
     use axum::{
         extract::{self, Json},
-        headers::authorization::Bearer,
         http::StatusCode,
         response::{Html, IntoResponse},
-        TypedHeader,
     };
     use axum_auth::AuthBearer;
-    use axum_macros::debug_handler;
+    
     use std::{io::Read, io::Write, path::PathBuf};
 
     use bzip2::read::BzDecoder;
@@ -96,7 +94,7 @@ pub mod route {
 
     use crate::blog::{db, render};
     use std::fs;
-    use std::path::Path;
+    
     pub struct SiteError(anyhow::Error, Option<StatusCode>);
 
     #[derive(Serialize, Deserialize, Default)]
@@ -136,9 +134,8 @@ pub mod route {
 
             fs::File::create(save_path)?.write_all(str_buf.as_bytes())?;
 
-            let conn = db::DbConnection::new()?;
+            let _conn = db::DbConnection::new()?;
 
-            conn.
             db::DbConnection::new()?.add_post_data(&self.metadata())?;
 
             Ok(())

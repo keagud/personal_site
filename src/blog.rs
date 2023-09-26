@@ -58,8 +58,6 @@ pub mod db {
         }
     }
 
-
-
     pub fn add_post_metadata_to_db(conn: &rusqlite::Connection, post: &Post) -> anyhow::Result<()> {
         let post_files_path = PathBuf::from(common::POSTS_MARKDOWN_PATH).canonicalize()?;
         let post_filename = format!("{}.md", post.slug.to_lowercase());
