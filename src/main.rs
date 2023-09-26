@@ -3,8 +3,6 @@ use axum::{
     Router, Server,
 };
 
-
-
 pub mod blog;
 
 pub mod common {
@@ -86,15 +84,19 @@ pub mod route {
         response::{Html, IntoResponse},
     };
     use axum_auth::AuthBearer;
-    
-    use std::{io::Read, io::Write, path::PathBuf};
+
+    use std::{
+        io::Read,
+        io::Write,
+        path::{Path, PathBuf},
+    };
 
     use bzip2::read::BzDecoder;
     use serde::{Deserialize, Serialize};
 
     use crate::blog::{db, render};
     use std::fs;
-    
+
     pub struct SiteError(anyhow::Error, Option<StatusCode>);
 
     #[derive(Serialize, Deserialize, Default)]
@@ -142,26 +144,17 @@ pub mod route {
         }
     }
 
-    pub enum StaticPage {
-        Home,
-        About,
+    pub struct StaticPage {
+        title: String,
+        page_path: PathBuf,
     }
 
     impl StaticPage {
-        pub fn title(&self) -> String {
-            match *self {
-                Self::Home => "Home",
-                Self::About => "About",
+        pub fn new(title: &str, page_path: impl AsRef<Path>) -> Self {
+            Self {
+                title: title.into(),
+                page_path: PathBuf::from(common::STATIC_PAGES_PATH).join(page_path.as_ref()),
             }
-            .to_owned()
-        }
-        pub fn page_path(&self) -> PathBuf {
-            let p = match *self {
-                Self::Home => "homepage.html",
-                Self::About => "about.html",
-            };
-
-            PathBuf::from(common::STATIC_PAGES_PATH).join(p)
         }
     }
 
@@ -201,19 +194,19 @@ pub mod route {
     }
 
     async fn static_route(page: StaticPage) -> Result<Html<String>, SiteError> {
-        let content = render::read_file_contents(page.page_path())
-            .and_then(|ref s| render::render_html_str(&page.title(), s))
+        let content = render::read_file_contents(page.page_path)
+            .and_then(|ref s| render::render_html_str(&page.title, s))
             .map(Html::from)?;
 
         Ok(content)
     }
 
     pub async fn about() -> Result<Html<String>, SiteError> {
-        static_route(StaticPage::About).await
+        static_route(StaticPage::new("About", "about.html")).await
     }
 
     pub async fn home() -> Result<Html<String>, SiteError> {
-        static_route(StaticPage::Home).await
+        static_route(StaticPage::new("Home", "homepage.html")).await
     }
 
     pub async fn get_post(
