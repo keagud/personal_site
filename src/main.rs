@@ -7,7 +7,6 @@ pub mod blog;
 
 pub mod md;
 
-
 pub mod common {
     use base64::engine::general_purpose;
 
@@ -78,7 +77,10 @@ pub mod common {
 }
 
 pub mod route {
-    use crate::common::{self, Post, POSTS_MARKDOWN_PATH};
+    use crate::{
+        common::{self, Post, POSTS_MARKDOWN_PATH},
+        md::read_file_contents,
+    };
     use anyhow;
     use anyhow::format_err;
     use axum::{
@@ -227,8 +229,10 @@ pub mod route {
     ) -> Result<Html<String>, SiteError> {
         let post = db::DbConnection::new()?.get(&slug)?;
 
+        let md_content = read_file_contents(post.md_path())?;
+
         render::RenderBuilder::new(&post.title)
-            .md_file(post.md_path())
+            .md_content(&md_content)
             .render()
             .map(Html::from)
             .map_err(|e| e.into())

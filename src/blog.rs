@@ -1,7 +1,3 @@
-
-
-use crate::md;
-
 pub mod db {
 
     use crate::common;
@@ -169,21 +165,19 @@ pub mod db {
     }
 }
 
-
 pub mod render {
     use crate::common;
     use crate::common::Post;
+    pub use crate::md::*;
     use anyhow;
     use anyhow::format_err;
     use handlebars::Handlebars;
-    use markdown;
-    use markdown::to_html_with_options;
-    use serde::{Deserialize, Serialize};
-    use std::fs::{read_to_string, File};
+
+    use std::fs::File;
     use std::io::Read;
     use std::path::{Path, PathBuf};
 
-    pub use crate::md;
+    pub use crate::md::*;
 
     pub fn read_file_contents(file_path: impl AsRef<Path>) -> anyhow::Result<String> {
         let file_path = PathBuf::from(file_path.as_ref());
