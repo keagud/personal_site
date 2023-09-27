@@ -1,3 +1,7 @@
+
+
+use crate::md;
+
 pub mod db {
 
     use crate::common;
@@ -165,6 +169,7 @@ pub mod db {
     }
 }
 
+
 pub mod render {
     use crate::common;
     use crate::common::Post;
@@ -178,136 +183,7 @@ pub mod render {
     use std::io::Read;
     use std::path::{Path, PathBuf};
 
-    #[derive(Deserialize, Serialize)]
-    struct RenderParams {
-        pub title: String,
-        pub home_url: String,
-        pub content: String,
-        pub favicon_path: String,
-        pub quotes_list_json: String,
-        pub css: String,
-    }
-
-    pub const FAVICON_URL: &str = "/static/favicon.io";
-    pub const CSS_PATH: &str = "assets/style.css";
-    pub const QUOTES_PATH: &str = "assets/quotes.json";
-
-    //read from assets/quotes.json
-    fn load_quotes() -> String {
-        read_to_string(QUOTES_PATH).expect("Hardcoded json path should work")
-    }
-
-    //load css as a string
-    fn load_css() -> String {
-        read_to_string(CSS_PATH).expect("Hardcoded CSS path should work")
-    }
-
-    impl Default for RenderParams {
-        fn default() -> Self {
-            RenderParams {
-                title: "Welcome to my web site!".into(),
-                home_url: "/".into(),
-                content: String::new(),
-                favicon_path: FAVICON_URL.into(),
-                quotes_list_json: load_quotes(),
-                css: load_css(),
-            }
-        }
-    }
-
-    impl RenderParams {
-        pub fn new(title: &str, content: &str) -> Self {
-            Self {
-                title: String::from(title),
-                content: String::from(content),
-                ..Self::default()
-            }
-        }
-    }
-
-    #[derive(Default)]
-    pub struct RenderBuilder {
-        title: String,
-        md_content: Option<String>,
-        md_file: Option<PathBuf>,
-        html_content: Option<String>,
-        sidenotes: bool,
-        into_base_template: bool,
-    }
-
-    impl RenderBuilder {
-        pub fn new(title: &str) -> Self {
-            RenderBuilder {
-                title: title.into(),
-                ..Self::default()
-            }
-        }
-        pub fn render(&self) -> anyhow::Result<String> {
-            //if html was given directly, use that,
-            //Otherwise get the string markdown content to render
-            let mut html_str = if let Some(ref html_content) = self.html_content {
-                if self.md_content.is_some() || self.md_file.is_some() {
-                    Err(format_err!("Ambiguous"))
-                } else {
-                    Ok(html_content.clone())
-                }
-            } else {
-                let md_content = match (&self.md_content, &self.md_file) {
-                    (Some(_), Some(_)) => Err(format_err!("Ambiguous ")),
-                    (None, None) => Err(format_err!("No source")),
-                    (Some(s), None) => Ok(s.clone()),
-                    (None, Some(f)) => read_to_string(f).map_err(|e| e.into()),
-                }?;
-
-                //render it to html
-                to_html_with_options(&md_content, &markdown::Options::gfm())
-                    .map_err(|e| format_err!("{}", e))
-            }?;
-
-            //if applicable, do postprocessing
-
-            if self.sidenotes {
-                html_str = process_sidenotes(&html_str);
-            }
-
-            if self.into_base_template {
-                let mut hb = Handlebars::new();
-                let base_template_path = get_template_path("base")?;
-                hb.register_template_file("base", base_template_path)?;
-
-                let render_params = RenderParams::new(&self.title, &html_str);
-
-                html_str = hb.render("base", &serde_json::to_value(render_params)?)?;
-            }
-
-            Ok(html_str)
-        }
-
-        pub fn html_content<'a>(&'a mut self, html_content: &str) -> &'a mut Self {
-            self.html_content = Some(html_content.into());
-            self
-        }
-
-        pub fn md_content<'a>(&'a mut self, content: &str) -> &'a mut Self {
-            self.md_content = Some(content.into());
-            self
-        }
-
-        pub fn md_file(&mut self, filepath: impl AsRef<Path>) -> &mut Self {
-            self.md_file = Some(PathBuf::from(filepath.as_ref()));
-            self
-        }
-
-        pub fn sidenotes(&mut self) -> &mut Self {
-            self.sidenotes = true;
-            self
-        }
-
-        pub fn into_base_template(&mut self) -> &mut Self {
-            self.into_base_template = true;
-            self
-        }
-    }
+    pub use crate::md;
 
     pub fn read_file_contents(file_path: impl AsRef<Path>) -> anyhow::Result<String> {
         let file_path = PathBuf::from(file_path.as_ref());
@@ -325,32 +201,6 @@ pub mod render {
         file_handle.read_to_end(&mut buf)?;
 
         Ok(String::from_utf8(buf)?)
-    }
-    pub fn process_sidenotes(document_input: &str) -> String {
-        let mut document = String::from(document_input);
-        let pattern_str = r"\(:sidenote(?<text>.*?)sidenote:\)".to_string();
-        let mut counter: usize = 1;
-        let re = regex::RegexBuilder::new(&pattern_str)
-            .dot_matches_new_line(true)
-            .build()
-            .unwrap();
-
-        while re.is_match(&document) {
-            let mn_id = format!("mn-{counter}");
-            counter += 1;
-
-            let replacement = format!(
-                r#"<label for="{mn_id}" class="margin-toggle"> &#8853;</label> 
-            <input type="checkbox" id="{mn_id}" class="margin-toggle"/>
-            <span class="marginnote">
-            $text
-            </span> "#
-            );
-
-            document = re.replace(&document, replacement).to_string();
-        }
-
-        document
     }
 
     fn get_template_path(template_name: &str) -> anyhow::Result<PathBuf> {

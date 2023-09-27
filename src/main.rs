@@ -5,6 +5,9 @@ use axum::{
 
 pub mod blog;
 
+pub mod md;
+
+
 pub mod common {
     use base64::engine::general_purpose;
 
@@ -38,14 +41,14 @@ pub mod common {
     }
 
     //relative to crate root
-    pub static POSTS_DB_PATH: &str = "./assets/posts.db";
-    pub static POSTS_JSON_PATH: &str = "./assets/posts.json";
-    pub static POSTS_FILES_PATH: &str = "./assets/posts/html";
-    pub static POSTS_MARKDOWN_PATH: &str = "./assets/posts/md";
-    pub static TEMPLATES_PATH: &str = "./assets/templates";
+    pub const POSTS_DB_PATH: &str = "./assets/posts.db";
+    pub const POSTS_JSON_PATH: &str = "./assets/posts.json";
+    pub const POSTS_FILES_PATH: &str = "./assets/posts/html";
+    pub const POSTS_MARKDOWN_PATH: &str = "./assets/posts/md";
+    pub const TEMPLATES_PATH: &str = "./assets/templates";
 
-    pub static STATIC_PAGES_PATH: &str = "./assets/static";
-    pub static HOMEPAGE_PATH: &str = "./assets/static/homepage.html";
+    pub const STATIC_PAGES_PATH: &str = "./assets/static";
+    pub const HOMEPAGE_PATH: &str = "./assets/static/homepage.html";
 
     pub fn validate_token(token: impl AsRef<[u8]>) -> bool {
         if cfg!(debug_assertions) {
@@ -95,6 +98,7 @@ pub mod route {
     use serde::{Deserialize, Serialize};
 
     use crate::blog::{db, render};
+    use crate::md;
     use std::fs;
 
     pub struct SiteError(anyhow::Error, Option<StatusCode>);
@@ -190,7 +194,7 @@ pub mod route {
         let posts = db::DbConnection::new()?.all_posts()?;
         let posts_list = render::post_index_display(&posts)?;
 
-        let content = render::RenderBuilder::new("Posts Index")
+        let content = md::RenderBuilder::new("Posts Index")
             .html_content(&posts_list)
             .into_base_template()
             .render()?;

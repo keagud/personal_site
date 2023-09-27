@@ -1,0 +1,29 @@
+{
+  "name": "md-wasm",
+  "version": "0.1.0",
+  "description": "Client-side markdown rendering with WASM",
+  "main": "index.js",
+  "bin": {
+    "create-wasm-app": ".bin/create-wasm-app.js"
+  },
+  "scripts": {
+    "build": "tsc && webpack --config webpack.config.js",
+    "start": "tsc && webpack-dev-server"
+  },
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "rust",
+    "webpack"
+  ],
+  "dependencies": {
+    "lib-rs": "file:../lib-rs/pkg/",
+    "typescript": "^5.2.2"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^5.0.0",
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5"
+  }
+}
