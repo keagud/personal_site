@@ -37,3 +37,4 @@ axum-macros = "0.3.8"
 axum-auth = "0.4.0"
 const_format = "0.2.31"
 wasm-bindgen = { version = "0.2.87", features = ["serde", "serde_json"]}
+js-sys = "0.3.64"

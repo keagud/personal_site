@@ -9,6 +9,8 @@ use std::include_str;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
+use wasm_bindgen::prelude::*;
+
 #[derive(Deserialize, Serialize)]
 struct RenderParams {
     pub title: String,
@@ -24,7 +26,6 @@ static CSS: &str = include_str!("../assets/style.css");
 static QUOTES: &str = include_str!("../assets/quotes.json");
 
 static BASE_TEMPLATE: &str = include_str!("../assets/templates/base.html");
-
 impl Default for RenderParams {
     fn default() -> Self {
         RenderParams {
@@ -48,9 +49,10 @@ impl RenderParams {
     }
 }
 
+#[wasm_bindgen]
 #[derive(Default)]
 pub struct RenderBuilder {
-    title: String,
+    title: Option<String>,
     md_content: Option<String>,
     html_content: Option<String>,
     sidenotes: bool,
@@ -58,11 +60,8 @@ pub struct RenderBuilder {
 }
 
 impl RenderBuilder {
-    pub fn new(title: &str) -> Self {
-        RenderBuilder {
-            title: title.into(),
-            ..Self::default()
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
     pub fn render(&self) -> anyhow::Result<String> {
         //if html was given directly, use that,
@@ -95,7 +94,7 @@ impl RenderBuilder {
 
             hb.register_template_string("base", BASE_TEMPLATE)?;
 
-            let render_params = RenderParams::new(&self.title, &html_str);
+            let render_params = RenderParams::new(&self.title.clone().unwrap(), &html_str);
 
             html_str = hb.render("base", &serde_json::to_value(render_params)?)?;
         }
@@ -118,7 +117,8 @@ impl RenderBuilder {
         self
     }
 
-    pub fn into_base_template(&mut self) -> &mut Self {
+    pub fn into_base_template(&mut self, title: &str) -> &mut Self {
+        self.title = Some(title.into());
         self.into_base_template = true;
         self
     }
@@ -166,4 +166,29 @@ pub fn process_sidenotes(document_input: &str) -> String {
     }
 
     document
+}
+
+#[wasm_bindgen]
+#[derive(Default)]
+pub struct MdRenderOpts {
+    pub with_template: bool,
+    pub with_sidenotes: bool,
+}
+
+//#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+pub fn render_markdown(md_content: &str, opts: MdRenderOpts) -> Result<String, JsError> {
+    let mut builder = RenderBuilder::new();
+
+    builder.md_content(md_content);
+
+    if opts.with_sidenotes {
+        builder.sidenotes();
+    }
+
+    if opts.with_template {
+        builder.into_base_template("Page");
+    }
+
+    builder.render().map_err(|e| JsError::new(&e.to_string()))
 }
