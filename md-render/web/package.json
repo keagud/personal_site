@@ -17,7 +17,7 @@
     "webpack"
   ],
   "dependencies": {
-    "lib-rs": "file:../lib-rs/pkg/",
+    "lib-rs": "file:../pkg/",
     "typescript": "^5.2.2"
   },
   "devDependencies": {

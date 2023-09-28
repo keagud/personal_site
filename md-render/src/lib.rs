@@ -1,7 +1,7 @@
-
 use anyhow::format_err;
 use handlebars::Handlebars;
 
+use js_sys;
 use markdown::to_html_with_options;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -141,9 +141,11 @@ pub fn read_file_contents(file_path: impl AsRef<Path>) -> anyhow::Result<String>
 
     Ok(String::from_utf8(buf)?)
 }
+
+#[wasm_bindgen]
 pub fn process_sidenotes(document_input: &str) -> String {
     let mut document = String::from(document_input);
-    let pattern_str = r"\(:sidenote(?<text>.*?)sidenote:\)".to_string();
+    let pattern_str = r"\(:sidenote(?<text>.*?):sidenote\)".to_string();
     let mut counter: usize = 1;
     let re = regex::RegexBuilder::new(&pattern_str)
         .dot_matches_new_line(true)
@@ -173,6 +175,47 @@ pub fn process_sidenotes(document_input: &str) -> String {
 pub struct MdRenderOpts {
     pub with_template: bool,
     pub with_sidenotes: bool,
+}
+
+#[wasm_bindgen]
+impl MdRenderOpts {
+    /// Take a JS object of the form: {with_template: true, with_sidenotes_false},
+    /// and initializes MdRenderOpts from those values.
+    /// Extra values are ignored
+    pub fn from_obj(obj: js_sys::Object) -> Self {
+        let mut base_opts = Self::default();
+
+        for js_val in js_sys::Object::entries(&obj) {
+            let arr_result: Result<js_sys::Array, JsError> =
+                js_val.try_into().map_err(|e| JsError::from(e));
+
+            if let Ok(arr) = arr_result {
+                let k = arr.get(0);
+                let v = arr.get(1);
+
+                if k.is_undefined() || v.is_undefined() {
+                    continue;
+                }
+
+                match (k.as_string(), v.as_bool()) {
+                    (Some(prop_name), Some(prop_val)) => match prop_name.as_str() {
+                        "with_template" => base_opts.with_template = prop_val,
+                        "with_sidenotes" => base_opts.with_sidenotes = prop_val,
+                        _ => continue,
+                    },
+                    _ => continue,
+                };
+            }
+        }
+
+        base_opts
+    }
+}
+
+impl From<js_sys::Object> for MdRenderOpts {
+    fn from(value: js_sys::Object) -> Self {
+        Self::from_obj(value)
+    }
 }
 
 //#[cfg(target_arch = "wasm32")]

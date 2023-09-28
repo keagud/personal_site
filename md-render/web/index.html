@@ -1,11 +1,53 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <title>Hello wasm-pack!</title>
-  </head>
-  <body>
-    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-    <script src="./bootstrap.js"></script>
-  </body>
+
+<head>
+  <meta charset="utf-8">
+  <title>Hello wasm-pack!</title>
+</head>
+
+<body>
+  <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+  <script src="./bootstrap.js"></script>
+
+
+
+  <button type="button" id="md-submit-button">Submit</button>
+
+
+  <div class="parent">
+    <div id="md-input-container" class="md-container">
+      <textarea id="md-input-area" name="md-input" rows="75" cols="75"># Markdown goes here</textarea>
+    </div>
+
+
+    <div id="md-output-container" class="md-container" min-width="75" min-height="75">
+    </div>
+  </div>
+
+
+  <style>
+    .parent {
+      display: flex;
+
+    }
+
+    .md-container {
+      flex: 1;
+      padding: 10px;
+      margin: 10px;
+    }
+
+    #md-output-container {
+      border: 2px solid black;
+
+
+    }
+  </style>
+
+</body>
+
+
+</body>
+
 </html>
