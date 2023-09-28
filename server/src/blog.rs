@@ -168,7 +168,6 @@ pub mod db {
 pub mod render {
     use crate::common;
     use crate::common::Post;
-    pub use crate::md::*;
     use anyhow;
     use anyhow::format_err;
     use handlebars::Handlebars;
@@ -177,7 +176,7 @@ pub mod render {
     use std::io::Read;
     use std::path::{Path, PathBuf};
 
-    pub use crate::md::*;
+    pub use md_render::*;
 
     pub fn read_file_contents(file_path: impl AsRef<Path>) -> anyhow::Result<String> {
         let file_path = PathBuf::from(file_path.as_ref());

@@ -1,7 +1,7 @@
-use anyhow;
+
 use anyhow::format_err;
 use handlebars::Handlebars;
-use markdown;
+
 use markdown::to_html_with_options;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -22,10 +22,10 @@ struct RenderParams {
 }
 
 pub const FAVICON_URL: &str = "/static/favicon.io";
-static CSS: &str = include_str!("../assets/style.css");
-static QUOTES: &str = include_str!("../assets/quotes.json");
+static CSS: &str = include_str!("../../assets/style.css");
+static QUOTES: &str = include_str!("../../assets/quotes.json");
 
-static BASE_TEMPLATE: &str = include_str!("../assets/templates/base.html");
+static BASE_TEMPLATE: &str = include_str!("../../assets/templates/base.html");
 impl Default for RenderParams {
     fn default() -> Self {
         RenderParams {
