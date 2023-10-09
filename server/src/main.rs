@@ -3,6 +3,9 @@ use axum::{
     Router, Server,
 };
 
+use warp;
+use warp::Filter;
+
 pub mod blog;
 
 pub mod common {
@@ -74,6 +77,102 @@ pub mod common {
 
         dt.format(format_str).to_string()
     }
+}
+
+pub mod route_warp {
+
+    use crate::{
+        blog::render::read_file_contents,
+        common::{self, Post, POSTS_MARKDOWN_PATH},
+    };
+    use anyhow;
+    use anyhow::format_err;
+
+    use std::{
+        io::Read,
+        io::Write,
+        path::{Path, PathBuf},
+    };
+
+    use bzip2::read::BzDecoder;
+    use serde::{Deserialize, Serialize};
+    use crate::blog::{db, render};
+    use std::fs;
+
+    #[derive(Serialize, Deserialize, Default)]
+    pub struct PostUpload {
+        pub title: String,
+        pub timestamp: usize,
+        pub slug: String,
+        pub file_content_compressed: String,
+        pub overwrite: bool,
+    }
+
+    impl PostUpload {
+        pub fn metadata(&self) -> Post {
+            Post {
+                title: self.title.to_owned(),
+                slug: self.slug.to_owned(),
+                timestamp: self.timestamp,
+            }
+        }
+
+        pub fn save(&self) -> anyhow::Result<()> {
+            let upload_bytes = hex::decode(&self.file_content_compressed)?;
+
+            let mut decoder = BzDecoder::new(upload_bytes.as_slice());
+            let mut str_buf = String::new();
+            decoder.read_to_string(&mut str_buf)?;
+
+            let filename = format!("{}.md", self.slug);
+
+            let save_path = PathBuf::from(POSTS_MARKDOWN_PATH).join(&filename);
+
+            match save_path.try_exists() {
+                Err(e) => Err(e.into()),
+                Ok(true) if !self.overwrite => Err(format_err!("'{filename}' already exists")),
+                _ => Ok(()),
+            }?;
+
+            fs::File::create(save_path)?.write_all(str_buf.as_bytes())?;
+
+            let _conn = db::DbConnection::new()?;
+
+            db::DbConnection::new()?.add_post_data(&self.metadata())?;
+
+            Ok(())
+        }
+    }
+
+    pub struct StaticPage {
+        title: String,
+        page_path: PathBuf,
+    }
+
+    impl StaticPage {
+        pub fn new(title: &str, page_path: impl AsRef<Path>) -> Self {
+            Self {
+                title: title.into(),
+                page_path: PathBuf::from(common::STATIC_PAGES_PATH).join(page_path.as_ref()),
+            }
+        }
+    }
+
+
+
+    async fn static_route(page: StaticPage) -> Result<Html<String>, SiteError> {
+        let content = render::read_file_contents(page.page_path)
+            .and_then(|ref s| {
+                render::RenderBuilder::new()
+                    .html_content(s)
+                    .into_base_template(&page.title)
+                    .render()
+            })
+            .map(Html::from)?;
+
+        Ok(content)
+    }
+
 }
 
 pub mod route {

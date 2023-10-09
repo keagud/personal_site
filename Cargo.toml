@@ -1,2 +1,2 @@
 [workspace]
-members = ["server", "md-render"]
+members = ["server", "md-render","warp_server"]
