@@ -1,2 +1,7 @@
 [workspace]
-members = [ "md-render","warp_server", "common", "server"]
+members = [ 
+  "md-render", 
+  "common", 
+  "server", 
+  "tide_server"
+]
