@@ -26,4 +26,8 @@ fn main() {
     });
 
     println!("cargo:rustc-env=SITE_ADMIN_KEY={key}");
+
+    if cfg!(debug_assertions) {
+        println!("cargo:rustc-env=ASSETS_DIR=./assets");
+    }
 }

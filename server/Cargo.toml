@@ -7,13 +7,8 @@ edition = "2021"
 
 [dependencies]
 parking_lot = "0.10.0"
-serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["macros", "full"] }
-chrono = "0.4.28"
-rusqlite = "0.29.0"
 anyhow = { version = "1.0.75", features = ["backtrace"]}
-handlebars = "4.4.0"
-serde_json = "1.0.106"
 axum = { version = "0.6.20", features = ["multipart", "headers"]}
 async-std = { version = "1", features = ["attributes", "tokio1"] }
 tower = "0.4.13"
@@ -29,10 +24,12 @@ bzip2 = "0.4.4"
 axum-macros = "0.3.8"
 axum-auth = "0.4.0"
 const_format = "0.2.31"
-md-render = {path = "../md-render/"}
-warp = "0.3.6"
 serde_derive = "1.0.188"
-
-
-
-
+sqlx = { version = "0.7.2" , features = ["sqlite", "runtime-tokio", "tls-rustls", "macros"] }
+dotenvy = "0.15.7"
+serde = { version = "1.0.188", features = ["serde_derive"]}
+chrono = "0.4.31"
+md-render = {path = "../md-render/"}
+handlebars = "4.4.0"
+serde_json = "1.0.107"
+common = {path = "../common/"}
