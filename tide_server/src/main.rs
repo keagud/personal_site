@@ -1,72 +1,23 @@
-use base64::engine::general_purpose;
-use base64::Engine;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use md_render::RenderBuilder;
-use serde::{Deserialize, Serialize};
-use sqlx::sqlite::SqlitePool;
-use sqlx::FromRow;
-use sqlx::Row;
-
-use std::fs::{self, File};
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
-
 use common::asset;
-
-use anyhow::format_err;
 use handlebars::Handlebars;
+use serde_json::json;
+use std::sync::Arc;
+use tide::{self, StatusCode, http::mime};
 
-#[cfg(debug_assertions)]
-const MIGRATIONS_DIR: &str = "./migrations";
+pub mod blog;
+use blog::db;
 
-#[cfg(not(debug_assertions))]
-const MIGRATIONS_DIR: &str = "";
-
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, FromRow)]
-pub struct Post {
-    pub title: String,
-    pub timestamp: i64,
-    pub slug: String,
-    pub text_content: String,
-    pub text_rendered: Option<String>,
+macro_rules! crate_root {
+    ($s:literal) => {
+        concat!(std::env!("CARGO_MANIFEST_DIR", $s))
+    };
 }
 
-impl Post {
-    pub fn date_str(&self) -> String {
-        timestamp_date_format(self.timestamp, "%F")
-    }
+const BASE_TEMPLATE_PATH: &'static str = crate_root!("/assets/templates/base.html");
+const POST_LIST_TEMPLATE_PATH: &'static str = crate_root!("/assets/templates/posts_list.html");
 
-    pub fn html_path(&self) -> PathBuf {
-        PathBuf::from(POSTS_FILES_PATH).join(format!("{}.html", self.slug))
-    }
-}
-
-//relative to crate root
-//TODO make this work relative to file rather than cwd,
-//so it can be invoked from anywhere
-pub const POSTS_DB_PATH: &str = asset!("/posts.db");
-pub const POSTS_JSON_PATH: &str = asset!("/posts.json");
-pub const POSTS_FILES_PATH: &str = asset!("/posts");
-pub const TEMPLATES_PATH: &str = asset!("/templates");
-
-pub const HOMEPAGE_PATH: &str = asset!("/static/homepage.html");
-
-pub fn validate_token(token: impl AsRef<[u8]>) -> bool {
-    if cfg!(debug_assertions) {
-        true
-    } else {
-        let env_token = std::option_env!("SITE_ADMIN_KEY")
-            .expect("Admin key should be present in release builds");
-
-        env_token.as_bytes() == token.as_ref()
-    }
-}
-
-pub fn decode_base64(encoded: &impl AsRef<[u8]>) -> anyhow::Result<String> {
-    let decoded_bytes = general_purpose::STANDARD_NO_PAD.decode(encoded)?;
-    let decoded_string = String::from_utf8(decoded_bytes)?;
-    Ok(decoded_string)
-}
+type PostsDb = Arc<sqlx::Pool<sqlx::Sqlite>>;
 
 pub fn timestamp_date_format(timestamp: i64, format_str: &str) -> String {
     let naive = NaiveDateTime::from_timestamp_opt(timestamp, 0).expect("Timestamp is valid");
@@ -75,64 +26,67 @@ pub fn timestamp_date_format(timestamp: i64, format_str: &str) -> String {
 
     dt.format(format_str).to_string()
 }
-
-fn main() {
-    println!("Hello, world!");
+pub struct Routes<'a> {
+    hb: Box<Handlebars<'a>>,
 }
 
-pub mod db {
+impl<'a> Routes<'a> {
+    pub fn new() -> Self {
+        let mut hb = Handlebars::new();
 
-    use crate::Post;
-    use anyhow;
-    use sqlx::sqlite::SqlitePool;
-    use sqlx::{sqlite, Executor, Row};
+        hb.register_template_file("base", BASE_TEMPLATE_PATH)
+            .unwrap();
 
-    pub struct PostMetadata {
-        pub title: String,
-        pub slug: String,
-        pub timestamp: i64,
+        hb.register_template_file("posts_list", POST_LIST_TEMPLATE_PATH)
+            .unwrap();
+        Self { hb: Box::new(hb) }
     }
 
-    pub async fn init_db() -> Result<sqlite::SqlitePool, sqlx::Error> {
-        let opts = sqlite::SqliteConnectOptions::new()
-            .filename("posts.db")
-            .create_if_missing(true);
+    pub async fn posts_list_page(&self, req: tide::Request<PostsDb>) -> tide::Result {
+        let conn = req.state();
+        let all_posts = db::fetch_all_post_metadata(&conn)
+            .await
+            .map_err(|e| tide::Error::new(StatusCode::InternalServerError, e))?;
 
-        let pool = SqlitePool::connect_with(opts).await?;
-        Ok(pool)
-    }
-
-    pub async fn add_post(pool: &SqlitePool, post: &Post) -> anyhow::Result<()> {
-        let _ = sqlx::query(
-            "INSERT INTO post (title, timestamp, slug, text_content) VALUES (?1, ?2, ?3, ?4);",
-        )
-        .bind(&post.title)
-        .bind(post.timestamp)
-        .bind(&post.slug)
-        .bind(&post.text_content)
-        .execute(pool)
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn fetch_post(pool: &SqlitePool, slug: &str) -> anyhow::Result<Option<Post>> {
-        let q = sqlx::query_as::<_, Post>("SELECT * from post WHERE slug = ?1").bind(slug);
-        q.fetch_optional(pool).await.map_err(|e| e.into())
-    }
-
-    pub async fn fetch_all_post_metadata(pool: &SqlitePool) -> anyhow::Result<Vec<PostMetadata>> {
-        let posts: Vec<PostMetadata> = sqlx::query("SELECT * FROM post ORDER BY timestamp")
-            .fetch_all(pool)
-            .await?
+        let template_json: Vec<serde_json::Value> = all_posts
             .iter()
-            .map(|row| PostMetadata {
-                title: row.get("title"),
-                timestamp: row.get("timestamp"),
-                slug: row.get("slug"),
-            })
-            .collect();
+            .map(|p| 
+                json!( {"date" : timestamp_date_format(p.timestamp, "%F"), "slug" : p.slug, "title": p.title})).collect();
 
-        Ok(posts)
+        let rendered = self.hb.render("posts_list", &template_json)?;
+
+        //TODO render into the base template as well
+        let res = tide::Response::builder(StatusCode::Ok).content_type(mime::HTML).body(rendered).build();
+
+        Ok(res)
     }
+
+    pub async fn post_page() -> tide::Response {
+        todo!();
+    }
+
+    pub async fn homepage() -> tide::Response {
+        todo!();
+    }
+
+    pub async fn about_page() -> tide::Response {
+        todo!();
+    }
+}
+
+#[async_std::main]
+async fn main() -> tide::Result<()> {
+    let conn = Arc::new(
+        db::init_db()
+            .await
+            .expect("Database initialization shouldn't fail"),
+    );
+
+    let mut app = tide::with_state(conn);
+
+    app.at("/").serve_file(crate_root!("/static/homepage.html"));
+    app.at("/about")
+        .serve_file(crate_root!("/static/about.html"));
+    app.listen("0.0.0:8000").await?;
+    Ok(())
 }

@@ -3140,11 +3140,14 @@ name = "tide_server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-std",
  "base64 0.21.4",
  "chrono",
  "common",
  "dotenvy",
+ "femme",
  "handlebars",
+ "markdown",
  "md-render",
  "serde",
  "serde_json",
