@@ -1,6 +1,7 @@
 use anyhow::format_err;
 use handlebars::Handlebars;
 
+use common::asset;
 use js_sys;
 use markdown::to_html_with_options;
 use serde::{Deserialize, Serialize};
@@ -11,12 +12,6 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use wasm_bindgen::prelude::*;
-
-macro_rules! assets_dir {
-    () => {
-        env!("ASSETS_DIR")
-    };
-}
 
 #[derive(Deserialize, Serialize)]
 struct RenderParams {
@@ -30,9 +25,9 @@ struct RenderParams {
 
 pub const FAVICON_URL: &str = "/static/favicon.io";
 
-static CSS: &str = include_str!(concat!(assets_dir!(), "/css/style.css"));
-static QUOTES: &str = include_str!(concat!(assets_dir!(), "/quotes.json"));
-static BASE_TEMPLATE: &str = include_str!(concat!(assets_dir!(), "/templates/base.html"));
+static CSS: &str = include_str!(asset!("css/style.css"));
+static QUOTES: &str = include_str!(asset!("quotes.json"));
+static BASE_TEMPLATE: &str = include_str!(asset!("templates/base.html"));
 
 impl Default for RenderParams {
     fn default() -> Self {

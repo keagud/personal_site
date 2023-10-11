@@ -1,7 +1,6 @@
 use axum::{
     routing::{get, post},
     Router, Server,
-    
 };
 
 use axum::http;
@@ -213,12 +212,7 @@ impl Routes {
 }
 
 impl Routes {
-
-    fn serve_static(filename: impl AsRef<Path>) {
-
-
-    }
-
+    fn serve_static(filename: impl AsRef<Path>) {}
 }
 
 #[tokio::main]

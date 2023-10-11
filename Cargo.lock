@@ -1716,6 +1716,7 @@ name = "md-render"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "common",
  "handlebars",
  "js-sys",
  "markdown",
