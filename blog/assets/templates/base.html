@@ -1,0 +1,66 @@
+{{!--
+<!--
+  title: page title 
+  favicon_url: path for favicon image
+  home_url: url for the home page
+  content: html for the page content (inserted as raw html)
+  quotes_json_url
+  css_url
+-->
+--}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  <link rel="icon" type="image/x-icon" href="{{ favicon_url }}">
+  <link rel="stylesheet" type="text/css" href="{{ css_url }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+</head>
+
+<body>
+  <header id="page-header">
+    <h1><a href="{{ home_url }}">implicit.computer</a></h1>
+
+    <div id="quote-box">
+      <p><em id="quote"></em></p>
+    </div>
+  </header>
+  <br>
+
+
+  <section id="page-content">
+    {{{ content }}}
+  </section>
+
+
+  <script>
+
+
+    const quotesJson = (() => {
+      let reader = new XMLHttpRequest();
+      reader.open("GET", "{{quotes_json_url}}", false);
+      reader.send();
+      return JSON.parse(reader.responseText);
+    })();
+
+    console.log(quotesJson);
+
+    const quoteElement = document.querySelector("#quote");
+
+    quoteElement.textContent = (() => {
+      const quotesArr = quotesJson["quotes"];
+      console.table(quotesArr);
+      let index = Math.floor(Math.random() * (quotesArr.length));
+      console.log(quotesArr[index]);
+      return quotesArr[index];
+    })();
+
+  </script>
+
+</body>
+
+</html>

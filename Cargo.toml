@@ -3,5 +3,6 @@ members = [
   "md-render", 
   "common", 
   "server", 
-  "tide_server"
+  "tide_server",
+  "blog"
 ]
